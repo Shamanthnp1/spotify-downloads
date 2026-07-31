@@ -1,0 +1,53 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry (ACR)
+        uses: azure/docker-login@v1
+        with:
+          login-server: acrspotifydl5660.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build \
+            -t acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }} \
+            -t acrspotifydl5660.azurecr.io/spotify-downloader:latest \
+            ./backend
+          docker push acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }}
+          docker push acrspotifydl5660.azurecr.io/spotify-downloader:latest
+
+      - name: Deploy Worker Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/backend
+          acrName: acrspotifydl5660
+          containerAppName: spotify-downloader-worker
+          resourceGroup: rg-spotify-downloader
+          imageToDeploy: acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }}
+
+      - name: Deploy Web Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/backend
+          acrName: acrspotifydl5660
+          containerAppName: spotify-downloader-web
+          resourceGroup: rg-spotify-downloader
+          imageToDeploy: acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }}
