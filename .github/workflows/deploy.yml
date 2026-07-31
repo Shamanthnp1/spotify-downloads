@@ -18,15 +18,13 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log in to ACR via Azure CLI
+      - name: Build and Push Image via ACR
         run: |
-          az acr login --name acrspotifydl5660
-
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }} -t acrspotifydl5660.azurecr.io/spotify-downloader:latest ./backend
-          docker push acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }}
-          docker push acrspotifydl5660.azurecr.io/spotify-downloader:latest
+          az acr build \
+            --registry acrspotifydl5660 \
+            --image spotify-downloader:${{ github.sha }} \
+            --image spotify-downloader:latest \
+            ./backend
 
       - name: Deploy Worker Container App
         uses: azure/container-apps-deploy-action@v1
