@@ -1,18 +1,15 @@
-/**
- * Cloudflare Worker — R2 Cleanup
- *
- * Cron trigger: every 30 minutes  →  "*/30 * * * *"
- *
- * Deletes any R2 object whose LastModified date is older than 30 minutes.
- * Handles bucket pagination so it covers arbitrarily large buckets.
- *
- * Binding required in wrangler.toml:
- *   [[r2_buckets]]
- *   binding = "SPOTIFY_BUCKET"
- *   bucket_name = "spotify-downloads"
- *
- * No external dependencies — pure Workers runtime + R2 bindings.
- */
+// Cloudflare Worker — R2 Cleanup
+// Cron trigger: every 30 minutes  (cron expression: "*/30 * * * *")
+//
+// Deletes any R2 object whose LastModified date is older than 30 minutes.
+// Handles bucket pagination so it covers arbitrarily large buckets.
+//
+// Binding required in wrangler.toml:
+//   [[r2_buckets]]
+//   binding = "SPOTIFY_BUCKET"
+//   bucket_name = "spotify-downloads"
+//
+// No external dependencies — pure Workers runtime + R2 bindings.
 
 const STALE_THRESHOLD_MINUTES = 30;
 
