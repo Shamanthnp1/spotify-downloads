@@ -1,5 +1,4 @@
 {
-  "outputDirectory": "frontend",
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms",   "destination": "/terms.html"   }
@@ -18,12 +17,6 @@
       "source": "/:file.(css|js)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/:page(|index.html|privacy.html|terms.html)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ]
