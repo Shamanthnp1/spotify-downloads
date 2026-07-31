@@ -28,6 +28,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           docker build \
+            -f backend/Dockerfile \
             -t acrspotifydl5660.azurecr.io/spotify-downloader:${{ github.sha }} \
             -t acrspotifydl5660.azurecr.io/spotify-downloader:latest \
             ./backend
@@ -37,7 +38,7 @@ jobs:
       - name: Deploy Worker Container App
         uses: azure/container-apps-deploy-action@v1
         with:
-          appSourcePath: ${{ github.workspace }}/backend
+          appSourcePath: ${{ github.workspace }}
           acrName: acrspotifydl5660
           containerAppName: spotify-downloader-worker
           resourceGroup: rg-spotify-downloader
@@ -46,7 +47,7 @@ jobs:
       - name: Deploy Web Container App
         uses: azure/container-apps-deploy-action@v1
         with:
-          appSourcePath: ${{ github.workspace }}/backend
+          appSourcePath: ${{ github.workspace }}
           acrName: acrspotifydl5660
           containerAppName: spotify-downloader-web
           resourceGroup: rg-spotify-downloader
