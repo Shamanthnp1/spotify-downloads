@@ -8,8 +8,28 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/privacy",
+      "dest": "/frontend/privacy.html"
+    },
+    {
+      "src": "/terms",
+      "dest": "/frontend/terms.html"
+    },
+    {
+      "src": "/privacy.html",
+      "dest": "/frontend/privacy.html"
+    },
+    {
+      "src": "/terms.html",
+      "dest": "/frontend/terms.html"
+    },
+    {
+      "src": "/(.*\\.(css|js|svg|png|ico|woff2?))",
       "dest": "/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
     }
   ],
   "headers": [
@@ -39,7 +59,7 @@
       ]
     },
     {
-      "source": "/static/(.*)",
+      "source": "/(.*\\.(css|js))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -48,7 +68,7 @@
       ]
     },
     {
-      "source": "/(index\\.html)?",
+      "source": "/(index\\.html|privacy\\.html|terms\\.html)?",
       "headers": [
         {
           "key": "Cache-Control",
