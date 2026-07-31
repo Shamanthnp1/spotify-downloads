@@ -1,0 +1,13 @@
+name = "spotify-downloader-cleanup"
+main = "cleanup-worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron trigger — runs every 30 minutes
+[triggers]
+crons = ["*/30 * * * *"]
+
+# R2 bucket binding — must match the bucket you created in Cloudflare dashboard
+[[r2_buckets]]
+binding = "SPOTIFY_BUCKET"
+bucket_name = "spotify-downloads"

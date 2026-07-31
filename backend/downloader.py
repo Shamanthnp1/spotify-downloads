@@ -1,0 +1,56 @@
+import re
+from pathlib import Path
+
+
+def detect_url_type(url: str) -> str:
+    """
+    Returns 'track', 'playlist', or 'album' based on Spotify URL pattern.
+    Raises ValueError for unrecognized Spotify URL shapes.
+    """
+    track_pattern = re.compile(r"https?://open\.spotify\.com/track/[A-Za-z0-9]+")
+    playlist_pattern = re.compile(r"https?://open\.spotify\.com/playlist/[A-Za-z0-9]+")
+    album_pattern = re.compile(r"https?://open\.spotify\.com/album/[A-Za-z0-9]+")
+
+    if track_pattern.search(url):
+        return "track"
+    if playlist_pattern.search(url):
+        return "playlist"
+    if album_pattern.search(url):
+        return "album"
+
+    raise ValueError(f"Unrecognized Spotify URL format: {url}")
+
+
+def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str) -> list[str]:
+    """
+    Returns a fully-formed list of CLI args for spotdl.
+
+    fmt      — one of: mp3, flac, m4a, opus
+    bitrate  — one of: 128k, 192k, 256k, 320k (ignored when fmt == 'flac')
+    output_dir — absolute path to the temp working directory for this job
+    """
+    valid_formats = {"mp3", "flac", "m4a", "opus"}
+    valid_bitrates = {"128k", "192k", "256k", "320k"}
+
+    if fmt not in valid_formats:
+        raise ValueError(f"Invalid format '{fmt}'. Must be one of: {valid_formats}")
+
+    if fmt != "flac" and bitrate not in valid_bitrates:
+        raise ValueError(f"Invalid bitrate '{bitrate}'. Must be one of: {valid_bitrates}")
+
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    args = [
+        "spotdl",
+        "download",
+        url,
+        "--output", output_dir,
+        "--format", fmt,
+    ]
+
+    # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
+    if fmt != "flac":
+        # spotdl expects bitrate as a plain integer string (e.g. "320k" → "320k")
+        args.extend(["--bitrate", bitrate])
+
+    return args

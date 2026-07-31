@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary SEO ─────────────────────────────────────────────────── -->
+  <title>Spotify Downloader — Download Tracks, Playlists & Albums as MP3/FLAC</title>
+  <meta name="description" content="Free Spotify downloader. Convert and download any Spotify track, playlist, or album to MP3, FLAC, M4A, or OPUS in seconds. High quality up to 320 kbps." />
+  <meta name="keywords" content="spotify downloader, download spotify music, spotify to mp3, spotify playlist downloader, spotify flac, convert spotify" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Spotify Downloader" />
+  <link rel="canonical" href="https://spotifydownloader.app/" />
+
+  <!-- ── Open Graph / Social ────────────────────────────────────────── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://spotifydownloader.app/" />
+  <meta property="og:title" content="Spotify Downloader — MP3, FLAC, M4A up to 320kbps" />
+  <meta property="og:description" content="Download any Spotify track, playlist, or album instantly. Choose your format and bitrate. Free, fast, no signup required." />
+  <meta property="og:image" content="https://spotifydownloader.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- ── Twitter Card ───────────────────────────────────────────────── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Spotify Downloader — MP3, FLAC, M4A up to 320kbps" />
+  <meta name="twitter:description" content="Download any Spotify track, playlist, or album instantly. Free, no signup." />
+  <meta name="twitter:image" content="https://spotifydownloader.app/og-image.png" />
+
+  <!-- ── Structured Data (JSON-LD) ─────────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Spotify Downloader",
+    "url": "https://spotifydownloader.app/",
+    "description": "Download Spotify tracks, playlists, and albums as MP3, FLAC, M4A, or OPUS audio files.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Download Spotify tracks as MP3",
+      "Download Spotify playlists",
+      "Download Spotify albums",
+      "FLAC lossless quality",
+      "Up to 320kbps bitrate"
+    ]
+  }
+  </script>
+
+  <!-- ── Preconnect / Performance ───────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- ── Favicon / Theme ────────────────────────────────────────────── -->
+  <meta name="theme-color" content="#0a0a0f" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%231DB954'/><path d='M22.9 14.9C19.7 13 14.35 12.8 11.3 13.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z' fill='white'/></svg>" />
+</head>
+<body>
+  <!-- ── Skip Nav (a11y) ─────────────────────────────────────────────── -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="page-wrapper">
+
+    <!-- ── Header ──────────────────────────────────────────────────── -->
+    <header class="site-header" role="banner">
+      <div class="header-inner">
+        <a href="/" class="logo" aria-label="Spotify Downloader — home">
+          <span class="logo-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="12" fill="#1DB954"/>
+              <path d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1
+                       .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25z
+                       m-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95
+                       -.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2
+                       2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45
+                       -.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z"
+                    fill="white"/>
+            </svg>
+          </span>
+          <span class="logo-text">SpotDL</span>
+        </a>
+        <nav class="header-nav" aria-label="Site navigation">
+          <ul role="list">
+            <li><a href="#how-it-works" class="nav-link">How it works</a></li>
+            <li><a href="#faq" class="nav-link">FAQ</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ── Hero ────────────────────────────────────────────────────── -->
+    <section class="hero-section" aria-labelledby="hero-heading">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="badge" aria-label="Free tool">
+          <span class="badge-dot" aria-hidden="true"></span>
+          Free · No signup · No limits
+        </div>
+        <h1 id="hero-heading" class="hero-title">
+          Download any Spotify<br />
+          <span class="hero-accent">track, playlist or album</span>
+        </h1>
+        <p class="hero-subtitle">
+          Convert Spotify links to MP3, FLAC, M4A, or OPUS — up to 320 kbps.
+          Paste a URL and go.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Main Content ─────────────────────────────────────────────── -->
+    <main id="main-content" class="main-content">
+      <!-- ── Download Card ──────────────────────────────────────────── -->
+      <article class="card" aria-label="Spotify download tool">
+        <form id="download-form" novalidate aria-label="Download form">
+          <div class="form-group">
+            <label for="url-input" class="sr-only">Spotify URL</label>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </span>
+              <input
+                type="url"
+                id="url-input"
+                class="input-url"
+                placeholder="https://open.spotify.com/track/…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Spotify track, playlist, or album URL"
+                aria-describedby="url-hint"
+              />
+            </div>
+            <span id="url-hint" class="input-hint">Supports tracks, playlists, and albums</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-group--half">
+              <label for="format-select" class="input-label">Format</label>
+              <div class="select-wrapper">
+                <select id="format-select" class="input-select" aria-label="Audio format">
+                  <option value="mp3">MP3</option>
+                  <option value="flac">FLAC</option>
+                  <option value="m4a">M4A</option>
+                  <option value="opus">OPUS</option>
+                </select>
+                <span class="select-arrow" aria-hidden="true">
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group form-group--half">
+              <label for="bitrate-select" class="input-label">
+                Bitrate
+                <span id="bitrate-note" class="bitrate-note" aria-live="polite"></span>
+              </label>
+              <div class="select-wrapper">
+                <select id="bitrate-select" class="input-select" aria-label="Audio bitrate">
+                  <option value="128k">128 kbps</option>
+                  <option value="192k">192 kbps</option>
+                  <option value="256k">256 kbps</option>
+                  <option value="320k" selected>320 kbps</option>
+                </select>
+                <span class="select-arrow" aria-hidden="true">
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="download-btn" class="btn btn--primary">
+            <span class="btn-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </span>
+            <span class="btn-label">Download</span>
+          </button>
+        </form>
+
+        <!-- Progress -->
+        <section id="progress-section" class="progress-section" aria-live="polite" aria-atomic="false" hidden>
+          <div class="progress-header">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="status-text" class="status-text">Starting…</span>
+          </div>
+          <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-track">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+          </div>
+          <p class="progress-hint">Large playlists may take a few minutes</p>
+        </section>
+
+        <!-- Result -->
+        <section id="result-section" class="result-section" aria-live="polite" hidden>
+          <div class="result-icon-wrap" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <p id="result-filename" class="result-filename"></p>
+          <a id="result-download-link" class="btn btn--success" href="#" target="_blank" rel="noopener noreferrer">
+            <span class="btn-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </span>
+            Save File
+          </a>
+        </section>
+
+        <!-- Error -->
+        <section id="error-section" class="error-section" aria-live="assertive" hidden>
+          <div class="error-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p id="error-message" class="error-message"></p>
+          <button type="button" id="retry-btn" class="btn btn--ghost">Try Again</button>
+        </section>
+      </article>
+
+      <!-- ── Trust Signals ──────────────────────────────────────────── -->
+      <ul class="trust-strip" role="list" aria-label="Features">
+        <li class="trust-item">
+          <span class="trust-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          No signup required
+        </li>
+        <li class="trust-item">
+          <span class="trust-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          Fast downloads
+        </li>
+        <li class="trust-item">
+          <span class="trust-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </span>
+          Open source
+        </li>
+        <li class="trust-item">
+          <span class="trust-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
+          Up to 320 kbps
+        </li>
+      </ul>
+    </main>
+
+    <!-- ── How It Works ─────────────────────────────────────────────── -->
+    <section id="how-it-works" class="section" aria-labelledby="hiw-heading">
+      <div class="section-inner">
+        <h2 id="hiw-heading" class="section-title">How it works</h2>
+        <p class="section-subtitle">Three steps. No account. No waiting.</p>
+        <ol class="steps-list" role="list">
+          <li class="step-item">
+            <span class="step-number" aria-hidden="true">01</span>
+            <div class="step-body">
+              <h3 class="step-title">Copy a Spotify URL</h3>
+              <p class="step-desc">Open Spotify, right-click any track, playlist, or album, and copy its link.</p>
+            </div>
+          </li>
+          <li class="step-item">
+            <span class="step-number" aria-hidden="true">02</span>
+            <div class="step-body">
+              <h3 class="step-title">Paste &amp; choose format</h3>
+              <p class="step-desc">Paste the URL above, pick MP3, FLAC, M4A, or OPUS — and set your bitrate.</p>
+            </div>
+          </li>
+          <li class="step-item">
+            <span class="step-number" aria-hidden="true">03</span>
+            <div class="step-body">
+              <h3 class="step-title">Download your file</h3>
+              <p class="step-desc">Click Download. Your file is ready within seconds. No account or payment needed.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── FAQ ──────────────────────────────────────────────────────── -->
+    <section id="faq" class="section" aria-labelledby="faq-heading">
+      <div class="section-inner section-inner--narrow">
+        <h2 id="faq-heading" class="section-title">Frequently asked questions</h2>
+        <dl class="faq-list">
+          <div class="faq-item">
+            <dt class="faq-q">What formats are supported?</dt>
+            <dd class="faq-a">MP3, FLAC (lossless), M4A, and OPUS. Bitrate options up to 320 kbps for lossy formats.</dd>
+          </div>
+          <div class="faq-item">
+            <dt class="faq-q">Can I download full playlists?</dt>
+            <dd class="faq-a">Yes. Paste any Spotify playlist or album URL and all tracks will be bundled and downloaded.</dd>
+          </div>
+          <div class="faq-item">
+            <dt class="faq-q">Is this free?</dt>
+            <dd class="faq-a">Completely free. No account, no payment, no hidden limits.</dd>
+          </div>
+          <div class="faq-item">
+            <dt class="faq-q">How long are files stored?</dt>
+            <dd class="faq-a">Files are deleted automatically after you download them or within 30 minutes — whichever comes first.</dd>
+          </div>
+          <div class="faq-item">
+            <dt class="faq-q">Is this legal?</dt>
+            <dd class="faq-a">This tool is intended for personal use only with content you have the right to download. Respect artist rights and local copyright law.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ── Footer ───────────────────────────────────────────────────── -->
+    <footer class="site-footer" role="contentinfo">
+      <div class="footer-inner">
+        <nav class="footer-nav" aria-label="Legal navigation">
+          <a href="/terms" class="footer-nav-link">Terms of Service</a>
+          <span class="footer-nav-sep" aria-hidden="true">·</span>
+          <a href="/privacy" class="footer-nav-link">Privacy Policy</a>
+        </nav>
+        <p class="footer-legal">For personal use only. Respect artist rights and copyright law.</p>
+        <p class="footer-copy">&copy; <span id="footer-year"></span> SpotDL. Not affiliated with Spotify AB.</p>
+      </div>
+    </footer>
+
+  </div><!-- .page-wrapper -->
+
+  <script src="script.js"></script>
+  <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+</body>
+</html>
