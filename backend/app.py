@@ -1,5 +1,6 @@
 import os
 import re
+import ssl
 import uuid
 
 import redis as redis_lib
@@ -27,12 +28,13 @@ limiter = Limiter(
     key_func=get_remote_address,
     app=app,
     storage_uri=REDIS_URL,
+    storage_options={"ssl_cert_reqs": ssl.CERT_NONE},
     default_limits=["5 per hour"],
 )
 
 
 def _redis() -> redis_lib.Redis:
-    return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True)
+    return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True, ssl_cert_reqs=ssl.CERT_NONE)
 
 
 def _error(message: str, status: int):

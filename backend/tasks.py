@@ -1,5 +1,6 @@
 import os
 import shutil
+import ssl
 import subprocess
 import tempfile
 import zipfile
@@ -17,6 +18,8 @@ JOB_TTL_SECONDS = 7200  # 2 hours
 
 celery_app = Celery("spotify_downloader", broker=REDIS_URL, backend=REDIS_URL)
 
+_ssl_config = {"ssl_cert_reqs": ssl.CERT_NONE}
+
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -25,11 +28,13 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     broker_connection_retry_on_startup=True,
+    broker_use_ssl=_ssl_config,
+    redis_backend_use_ssl=_ssl_config,
 )
 
 
 def _redis() -> redis_lib.Redis:
-    return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True)
+    return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True, ssl_cert_reqs=ssl.CERT_NONE)
 
 
 def _set_job_fields(r: redis_lib.Redis, job_id: str, **fields) -> None:
