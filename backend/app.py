@@ -188,10 +188,6 @@ def debug():
     if Path(cookies_path).exists():
         cmd.extend(["--cookie-file", cookies_path])
 
-    proxy_url = os.environ.get("PROXY_URL", "").strip()
-    if proxy_url:
-        cmd.extend(["--proxy", proxy_url])
-
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
     client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
     if client_id and client_secret:
