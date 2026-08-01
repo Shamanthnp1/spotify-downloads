@@ -140,7 +140,81 @@ def confirm_download(job_id: str):
     return jsonify({"message": "File deleted from storage. Thank you."}), 200
 
 
-@app.errorhandler(429)
+@app.route("/api/debug", methods=["GET"])
+@limiter.exempt
+def debug():
+    """
+    Diagnostic endpoint — returns environment and spotdl test output.
+    Remove this endpoint before going to production.
+    """
+    import base64
+    import subprocess
+    from pathlib import Path
+
+    results = {}
+
+    # 1. Check cookies env var
+    b64 = os.environ.get("YOUTUBE_COOKIES_B64", "")
+    results["cookies_env_set"] = bool(b64)
+    results["cookies_env_length"] = len(b64)
+
+    # 2. Check cookies file on disk
+    cookies_path = "/tmp/yt_cookies.txt"
+    results["cookies_file_exists"] = Path(cookies_path).exists()
+    if Path(cookies_path).exists():
+        results["cookies_file_size_bytes"] = Path(cookies_path).stat().st_size
+
+    # 3. Try to decode cookies if file missing
+    if b64 and not Path(cookies_path).exists():
+        try:
+            decoded = base64.b64decode(b64)
+            with open(cookies_path, "wb") as f:
+                f.write(decoded)
+            results["cookies_decoded_now"] = True
+            results["cookies_file_size_bytes"] = len(decoded)
+        except Exception as exc:
+            results["cookies_decode_error"] = str(exc)
+
+    # 4. Run spotdl with a short timeout to see output
+    cmd = [
+        "spotdl", "download",
+        "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+        "--output", "/tmp/debug_test",
+        "--format", "mp3",
+    ]
+    if Path(cookies_path).exists():
+        cmd.extend(["--cookie-file", cookies_path])
+
+    results["spotdl_command"] = " ".join(cmd)
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        results["spotdl_returncode"] = proc.returncode
+        results["spotdl_stdout"] = proc.stdout[-3000:] if proc.stdout else ""
+        results["spotdl_stderr"] = proc.stderr[-3000:] if proc.stderr else ""
+    except subprocess.TimeoutExpired:
+        results["spotdl_error"] = "TIMEOUT — subprocess hung for 60 seconds. YouTube is blocking the request."
+    except Exception as exc:
+        results["spotdl_error"] = str(exc)
+
+    # 5. Check ffmpeg
+    try:
+        ffmpeg = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=5)
+        results["ffmpeg_available"] = ffmpeg.returncode == 0
+        results["ffmpeg_version"] = ffmpeg.stdout.splitlines()[0] if ffmpeg.stdout else ""
+    except Exception as exc:
+        results["ffmpeg_available"] = False
+        results["ffmpeg_error"] = str(exc)
+
+    return jsonify(results), 200
+
+
+
 def rate_limit_exceeded(exc):
     return _error("Rate limit exceeded. Maximum 5 downloads per hour per IP.", 429)
 
