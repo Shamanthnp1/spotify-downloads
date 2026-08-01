@@ -37,11 +37,26 @@ let pollStartTime = null;
 let activeJobId = null;
 
 // ── Bitrate lock when FLAC selected ────────────────────────────────────────
+// ── Format hint + bitrate lock when FLAC selected ──────────────────────────
+const FORMAT_HINTS = {
+  mp3:  "Lossy — smaller file, universal compatibility",
+  flac: "✦ Lossless — studio quality, larger file, bitrate N/A",
+  m4a:  "Lossy — great quality on Apple devices",
+  opus: "Lossy — best quality-to-size ratio",
+};
+
+const formatHint = document.getElementById("format-hint");
+
 formatSelect.addEventListener("change", () => {
   const isFlac = formatSelect.value === "flac";
   bitrateSelect.disabled = isFlac;
-  bitrateNote.textContent = isFlac ? "(lossless — bitrate N/A)" : "";
+  bitrateNote.textContent = isFlac ? "(lossless)" : "";
+  formatHint.textContent = FORMAT_HINTS[formatSelect.value] || "";
+  formatHint.className = "format-hint" + (isFlac ? " format-hint--lossless" : "");
 });
+
+// Set initial hint
+formatHint.textContent = FORMAT_HINTS[formatSelect.value] || "";
 
 // ── Form submission ─────────────────────────────────────────────────────────
 form.addEventListener("submit", (evt) => {
@@ -220,9 +235,50 @@ function setStatus(text, progress) {
   progressBarFill.style.width = `${pct}%`;
   progressBarTrack.setAttribute("aria-valuenow", pct);
 
+  // Update percentage display
+  const pctEl = document.getElementById("progress-pct");
+  if (pctEl) pctEl.textContent = pct > 0 ? `${pct}%` : "";
+
+  // Update ETA text based on progress
+  const etaEl = document.getElementById("progress-eta");
+  if (etaEl) {
+    if (pct === 0)        etaEl.textContent = "Usually completes within 40 seconds";
+    else if (pct < 20)   etaEl.textContent = "Fetching track info…";
+    else if (pct < 60)   etaEl.textContent = "Downloading audio — almost there";
+    else if (pct < 80)   etaEl.textContent = "Converting format…";
+    else if (pct < 95)   etaEl.textContent = "Uploading to storage…";
+    else                 etaEl.textContent = "Finalizing your file…";
+  }
+
+  // Drive step indicators
+  _updateSteps(pct);
+
   if (pct > 0) {
     progressBarFill.classList.remove("progress-bar-fill--indeterminate");
   }
+}
+
+function _updateSteps(pct) {
+  const steps = [
+    { id: "step-queue",    threshold: 0  },
+    { id: "step-fetch",    threshold: 10 },
+    { id: "step-download", threshold: 30 },
+    { id: "step-convert",  threshold: 60 },
+    { id: "step-ready",    threshold: 85 },
+  ];
+
+  steps.forEach(({ id, threshold }, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const nextThreshold = steps[i + 1]?.threshold ?? 101;
+    if (pct >= nextThreshold) {
+      el.dataset.state = "done";
+    } else if (pct >= threshold) {
+      el.dataset.state = "active";
+    } else {
+      el.dataset.state = "pending";
+    }
+  });
 }
 
 function showResult(filename, downloadUrl) {

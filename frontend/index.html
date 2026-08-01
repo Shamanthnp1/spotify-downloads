@@ -147,10 +147,10 @@
               <label for="format-select" class="input-label">Format</label>
               <div class="select-wrapper">
                 <select id="format-select" class="input-select" aria-label="Audio format">
-                  <option value="mp3">MP3</option>
-                  <option value="flac">FLAC</option>
-                  <option value="m4a">M4A</option>
-                  <option value="opus">OPUS</option>
+                  <option value="mp3">MP3 — Lossy</option>
+                  <option value="flac">FLAC — Lossless ✦</option>
+                  <option value="m4a">M4A — Lossy</option>
+                  <option value="opus">OPUS — Lossy</option>
                 </select>
                 <span class="select-arrow" aria-hidden="true">
                   <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
@@ -158,6 +158,7 @@
                   </svg>
                 </span>
               </div>
+              <span id="format-hint" class="format-hint"></span>
             </div>
 
             <div class="form-group form-group--half">
@@ -200,7 +201,32 @@
           <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-track">
             <div id="progress-bar-fill" class="progress-bar-fill"></div>
           </div>
-          <p class="progress-hint">Large playlists may take a few minutes</p>
+          <div class="progress-meta">
+            <span id="progress-pct" class="progress-pct">0%</span>
+            <span id="progress-eta" class="progress-eta">Usually completes within 40 seconds</span>
+          </div>
+          <ul class="progress-steps" aria-label="Download progress steps">
+            <li class="progress-step" id="step-queue" data-step="queue">
+              <span class="step-dot" aria-hidden="true"></span>
+              Queued for processing
+            </li>
+            <li class="progress-step" id="step-fetch" data-step="fetch">
+              <span class="step-dot" aria-hidden="true"></span>
+              Fetching track metadata
+            </li>
+            <li class="progress-step" id="step-download" data-step="download">
+              <span class="step-dot" aria-hidden="true"></span>
+              Downloading audio
+            </li>
+            <li class="progress-step" id="step-convert" data-step="convert">
+              <span class="step-dot" aria-hidden="true"></span>
+              Converting to your format
+            </li>
+            <li class="progress-step" id="step-ready" data-step="ready">
+              <span class="step-dot" aria-hidden="true"></span>
+              Preparing your file
+            </li>
+          </ul>
         </section>
 
         <!-- Result -->
