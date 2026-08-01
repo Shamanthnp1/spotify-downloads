@@ -37,7 +37,49 @@ let pollStartTime = null;
 let activeJobId = null;
 
 // ── Bitrate lock when FLAC selected ────────────────────────────────────────
-// ── Format hint + bitrate lock when FLAC selected ──────────────────────────
+// ── Fake progress advance ────────────────────────────────────────────────
+// Advances bar every 3s so it never looks stuck. Caps at 90% until real done.
+let _fakeProgressTimer = null;
+let _fakeProgressVal = 0;
+
+const FAKE_STEPS = [
+  { pct: 8,  label: "Queuing download…" },
+  { pct: 18, label: "Fetching track info…" },
+  { pct: 32, label: "Searching for audio…" },
+  { pct: 48, label: "Downloading audio…" },
+  { pct: 62, label: "Downloading audio…" },
+  { pct: 74, label: "Converting format…" },
+  { pct: 83, label: "Almost done…" },
+  { pct: 90, label: "Finishing up…" },
+];
+
+function startFakeProgress() {
+  _fakeProgressVal = 0;
+  let stepIdx = 0;
+  clearInterval(_fakeProgressTimer);
+  _fakeProgressTimer = setInterval(() => {
+    if (stepIdx >= FAKE_STEPS.length) {
+      clearInterval(_fakeProgressTimer);
+      return;
+    }
+    const step = FAKE_STEPS[stepIdx];
+    _setBar(step.pct, step.label);
+    stepIdx++;
+  }, 3000);
+}
+
+function stopFakeProgress() {
+  clearInterval(_fakeProgressTimer);
+  _fakeProgressTimer = null;
+}
+
+function _setBar(pct, label) {
+  const p = Math.max(0, Math.min(100, pct));
+  progressBarFill.style.width = `${p}%`;
+  progressBarTrack.setAttribute("aria-valuenow", p);
+  if (label) statusText.textContent = label;
+  if (p > 0) progressBarFill.classList.remove("progress-bar-fill--indeterminate");
+}
 const FORMAT_HINTS = {
   mp3:  "Lossy — smaller file, universal compatibility",
   flac: "✦ Lossless — studio quality, larger file, bitrate N/A",
@@ -176,12 +218,15 @@ function handleJobUpdate(jobId, job) {
       break;
 
     case "done":
+      stopFakeProgress();
+      _setBar(100, "Done!");
       setFormLocked(false);
       hideProgress();
       showResult(job.filename || "download", job.download_url);
       break;
 
     case "error":
+      stopFakeProgress();
       setFormLocked(false);
       hideProgress();
       showError(job.error || "An unknown error occurred during download.");
@@ -221,64 +266,21 @@ function showProgress() {
   resultSection.hidden = true;
   errorSection.hidden = true;
   progressBarFill.classList.add("progress-bar-fill--indeterminate");
+  startFakeProgress();
 }
 
 function hideProgress() {
   progressSection.hidden = true;
   progressBarFill.classList.remove("progress-bar-fill--indeterminate");
+  stopFakeProgress();
 }
 
 function setStatus(text, progress) {
-  statusText.textContent = text;
-
-  const pct = Math.max(0, Math.min(100, progress));
-  progressBarFill.style.width = `${pct}%`;
-  progressBarTrack.setAttribute("aria-valuenow", pct);
-
-  // Update percentage display
-  const pctEl = document.getElementById("progress-pct");
-  if (pctEl) pctEl.textContent = pct > 0 ? `${pct}%` : "";
-
-  // Update ETA text based on progress
-  const etaEl = document.getElementById("progress-eta");
-  if (etaEl) {
-    if (pct === 0)        etaEl.textContent = "Usually completes within 40 seconds";
-    else if (pct < 20)   etaEl.textContent = "Fetching track info…";
-    else if (pct < 60)   etaEl.textContent = "Downloading audio — almost there";
-    else if (pct < 80)   etaEl.textContent = "Converting format…";
-    else if (pct < 95)   etaEl.textContent = "Uploading to storage…";
-    else                 etaEl.textContent = "Finalizing your file…";
+  // Only override fake progress if real progress is meaningful
+  if (progress > 0) {
+    stopFakeProgress();
+    _setBar(progress, text);
   }
-
-  // Drive step indicators
-  _updateSteps(pct);
-
-  if (pct > 0) {
-    progressBarFill.classList.remove("progress-bar-fill--indeterminate");
-  }
-}
-
-function _updateSteps(pct) {
-  const steps = [
-    { id: "step-queue",    threshold: 0  },
-    { id: "step-fetch",    threshold: 10 },
-    { id: "step-download", threshold: 30 },
-    { id: "step-convert",  threshold: 60 },
-    { id: "step-ready",    threshold: 85 },
-  ];
-
-  steps.forEach(({ id, threshold }, i) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const nextThreshold = steps[i + 1]?.threshold ?? 101;
-    if (pct >= nextThreshold) {
-      el.dataset.state = "done";
-    } else if (pct >= threshold) {
-      el.dataset.state = "active";
-    } else {
-      el.dataset.state = "pending";
-    }
-  });
 }
 
 function showResult(filename, downloadUrl) {
@@ -310,6 +312,7 @@ function showError(message) {
 
 function resetUI() {
   clearTimeout(pollTimer);
+  stopFakeProgress();
   activeJobId = null;
   pollStartTime = null;
 
