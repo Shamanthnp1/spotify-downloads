@@ -63,4 +63,10 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
     if proxy_url:
         args.extend(["--proxy", proxy_url])
 
+    # Pass own Spotify credentials to avoid shared client rate limits
+    client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
+    if client_id and client_secret:
+        args.extend(["--client-id", client_id, "--client-secret", client_secret])
+
     return args
