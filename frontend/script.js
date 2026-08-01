@@ -56,6 +56,8 @@ const FAKE_STEPS = [
 function startFakeProgress() {
   _fakeProgressVal = 0;
   let stepIdx = 0;
+  // Remove indeterminate animation immediately so width changes are visible
+  progressBarFill.classList.remove("progress-bar-fill--indeterminate");
   clearInterval(_fakeProgressTimer);
   _fakeProgressTimer = setInterval(() => {
     if (stepIdx >= FAKE_STEPS.length) {
@@ -66,6 +68,10 @@ function startFakeProgress() {
     _setBar(step.pct, step.label);
     stepIdx++;
   }, 3000);
+  // Kick the first step immediately — don't wait 3s to start
+  const first = FAKE_STEPS[stepIdx];
+  _setBar(first.pct, first.label);
+  stepIdx++;
 }
 
 function stopFakeProgress() {
@@ -265,7 +271,7 @@ function showProgress() {
   progressSection.hidden = false;
   resultSection.hidden = true;
   errorSection.hidden = true;
-  progressBarFill.classList.add("progress-bar-fill--indeterminate");
+  progressBarFill.style.width = "0%";
   startFakeProgress();
 }
 
