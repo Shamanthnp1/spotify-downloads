@@ -193,11 +193,13 @@ def debug():
     if client_id and client_secret:
         cmd.extend(["--client-id", client_id, "--client-secret", client_secret])
 
+    proxy_url = os.environ.get("PROXY_URL", "").strip()
+    if proxy_url:
+        cmd.extend(["--ytdlp-args", f"--proxy {proxy_url}"])
+
     results["spotdl_command"] = " ".join(cmd)
 
-    # Inject proxy via env vars — spotdl --proxy flag rejects authenticated URLs
     debug_env = os.environ.copy()
-    proxy_url = os.environ.get("PROXY_URL", "").strip()
     if proxy_url:
         debug_env["HTTP_PROXY"] = proxy_url
         debug_env["HTTPS_PROXY"] = proxy_url
