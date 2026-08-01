@@ -175,6 +175,9 @@ def debug():
         except Exception as exc:
             results["cookies_decode_error"] = str(exc)
 
+    results["proxy_url_in_env"] = os.environ.get("PROXY_URL", "NOT SET")
+    results["spotify_client_id_set"] = bool(os.environ.get("SPOTIFY_CLIENT_ID", ""))
+
     # 4. Run spotdl with a short timeout to see output
     cmd = [
         "spotdl", "download",
