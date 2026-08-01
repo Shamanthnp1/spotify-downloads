@@ -42,7 +42,7 @@ def _error(message: str, status: int):
 
 
 @app.route("/api/download", methods=["POST"])
-@limiter.limit("5 per hour")
+@limiter.limit("20 per hour")
 def start_download():
     body = request.get_json(silent=True)
     if not body:
