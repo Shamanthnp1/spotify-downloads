@@ -38,19 +38,25 @@ def upload_file(local_path: str, object_key: str) -> str:
     return object_key
 
 
-def generate_presigned_url(object_key: str, expiry_seconds: int = 3600) -> str:
+def generate_presigned_url(object_key: str, expiry_seconds: int = 7200) -> str:
     """
     Generates a presigned GET URL for object_key valid for expiry_seconds.
-    Default validity: 1 hour.
+    Sets Content-Disposition: attachment so browsers download instead of playing.
+    Default validity: 2 hours.
     Raises RuntimeError if URL generation fails.
     """
     client = _get_client()
     bucket = _bucket()
+    filename = object_key.split("/")[-1]
 
     try:
         url = client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket, "Key": object_key},
+            Params={
+                "Bucket": bucket,
+                "Key": object_key,
+                "ResponseContentDisposition": f'attachment; filename="{filename}"',
+            },
             ExpiresIn=expiry_seconds,
         )
     except ClientError as exc:

@@ -53,14 +53,7 @@ retryBtn.addEventListener("click", () => {
   resetUI();
 });
 
-// ── Result download click — confirm deletion after user triggers download ──
-resultDownloadLink.addEventListener("click", () => {
-  if (!activeJobId) return;
-  // Fire-and-forget — inform backend the user downloaded so R2 object is deleted
-  confirmDownload(activeJobId).catch(() => {
-    // Non-critical — cleanup worker handles orphaned objects every 30 min
-  });
-});
+// ── Result download click — allow re-download ──────────────────────────────
 
 // ── Core functions ──────────────────────────────────────────────────────────
 
@@ -233,8 +226,24 @@ function setStatus(text, progress) {
 }
 
 function showResult(filename, downloadUrl) {
-  resultFilename.textContent = filename;
+  // Auto-trigger the file download — no second click needed
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Call confirm-download to mark job as done (best-effort, fire and forget)
+  if (activeJobId) {
+    confirmDownload(activeJobId).catch(() => {});
+  }
+
+  // Show a minimal success state — no Save File button needed
+  resultFilename.textContent = `${filename} — download started`;
   resultDownloadLink.href = downloadUrl;
+  resultDownloadLink.textContent = "Download again";
   resultSection.hidden = false;
 }
 
