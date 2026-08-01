@@ -5,13 +5,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # ffmpeg is required by spotdl for audio conversion
+# Deno is required by yt-dlp for certain YouTube video downloads
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
         curl \
+        unzip \
         build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Deno system-wide
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 WORKDIR /app
 
