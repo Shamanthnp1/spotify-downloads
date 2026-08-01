@@ -276,10 +276,13 @@ function hideProgress() {
 }
 
 function setStatus(text, progress) {
-  // Only override fake progress if real progress is meaningful
-  if (progress > 0) {
-    stopFakeProgress();
+  // Let the fake progress run — only update label from real status
+  // Don't override bar width unless real progress is ahead of fake
+  const currentWidth = parseFloat(progressBarFill.style.width) || 0;
+  if (progress > currentWidth) {
     _setBar(progress, text);
+  } else if (text) {
+    statusText.textContent = text;
   }
 }
 
