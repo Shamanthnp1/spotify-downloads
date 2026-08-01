@@ -58,10 +58,8 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
     if cookies_path and Path(cookies_path).exists():
         args.extend(["--cookie-file", cookies_path])
 
-    # Route through proxy if set — required on cloud IPs blocked by YouTube
-    proxy_url = os.environ.get("PROXY_URL", "").strip()
-    if proxy_url:
-        args.extend(["--proxy", proxy_url])
+    # Proxy is injected via HTTP_PROXY/HTTPS_PROXY env vars in the subprocess
+    # call — spotdl's --proxy flag rejects authenticated proxy URLs.
 
     # Pass own Spotify credentials to avoid shared client rate limits
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()

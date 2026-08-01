@@ -119,11 +119,23 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
 
         _set_job_fields(r, job_id, progress=10)
 
+        # Inject proxy via subprocess environment — spotdl's --proxy flag
+        # rejects authenticated URLs. HTTP_PROXY/HTTPS_PROXY is respected
+        # natively by both yt-dlp and requests without validation.
+        subprocess_env = os.environ.copy()
+        proxy_url = os.environ.get("PROXY_URL", "").strip()
+        if proxy_url:
+            subprocess_env["HTTP_PROXY"] = proxy_url
+            subprocess_env["HTTPS_PROXY"] = proxy_url
+            subprocess_env["http_proxy"] = proxy_url
+            subprocess_env["https_proxy"] = proxy_url
+
         result = subprocess.run(
             cli_args,
             capture_output=True,
             text=True,
             timeout=600,  # 10 minutes max per job
+            env=subprocess_env,
         )
 
         if result.returncode != 0:

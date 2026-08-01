@@ -199,12 +199,22 @@ def debug():
 
     results["spotdl_command"] = " ".join(cmd)
 
+    # Inject proxy via env vars — spotdl --proxy flag rejects authenticated URLs
+    debug_env = os.environ.copy()
+    proxy_url = os.environ.get("PROXY_URL", "").strip()
+    if proxy_url:
+        debug_env["HTTP_PROXY"] = proxy_url
+        debug_env["HTTPS_PROXY"] = proxy_url
+        debug_env["http_proxy"] = proxy_url
+        debug_env["https_proxy"] = proxy_url
+
     try:
         proc = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=60,
+            env=debug_env,
         )
         results["spotdl_returncode"] = proc.returncode
         results["spotdl_stdout"] = proc.stdout[-3000:] if proc.stdout else ""
