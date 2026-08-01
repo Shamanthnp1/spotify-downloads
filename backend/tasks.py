@@ -174,7 +174,7 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
 
         _set_job_fields(r, job_id, progress=90)
 
-        presigned_url = generate_presigned_url(object_key, expiry_seconds=3600)
+        presigned_url = generate_presigned_url(object_key, expiry_seconds=7200)
 
         _set_job_fields(
             r, job_id,

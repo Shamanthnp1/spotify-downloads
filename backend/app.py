@@ -127,13 +127,9 @@ def confirm_download(job_id: str):
         )
 
     object_key = job.get("object_key", "")
-    if object_key:
-        try:
-            delete_object(object_key)
-        except RuntimeError:
-            # Best-effort delete — don't fail the response if R2 is flaky
-            pass
-
+    # Don't delete R2 object immediately — the presigned URL is still being
+    # fetched by the browser. Mark as downloaded and let the cleanup Worker
+    # handle deletion after the 2-hour TTL expires.
     r.hset(f"job:{job_id}", "status", "downloaded")
     r.expire(f"job:{job_id}", 7200)
 

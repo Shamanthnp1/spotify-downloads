@@ -11,7 +11,7 @@
 //
 // No external dependencies — pure Workers runtime + R2 bindings.
 
-const STALE_THRESHOLD_MINUTES = 30;
+const STALE_THRESHOLD_MINUTES = 120; // 2 hours — matches job TTL
 
 export default {
   /**
