@@ -50,6 +50,7 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
         "--format", fmt,
         "--audio", "youtube-music",  # faster + less blocked on cloud IPs than YouTube
         "--ytm-data",                # use YouTube Music metadata — skips slower YouTube search
+        "--preload",                 # prefetch metadata while audio downloads
     ]
 
     # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
