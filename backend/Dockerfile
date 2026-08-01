@@ -4,8 +4,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# ffmpeg is required by spotdl for audio conversion
-# Deno is required by yt-dlp for certain YouTube video downloads
+# ffmpeg required by spotdl for audio conversion
+# Deno required by yt-dlp for certain YouTube video downloads
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
@@ -30,8 +30,6 @@ EXPOSE 8000
 # COMMAND env var controls which process this container runs:
 #   web    → gunicorn WSGI server (Flask API)
 #   worker → Celery worker
-#
-# Default is "web" so the image is runnable without env configuration.
 ENV COMMAND=web
 
 CMD if [ "$COMMAND" = "worker" ]; then \

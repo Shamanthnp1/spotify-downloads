@@ -1,14 +1,6 @@
+import os
 import re
-import requests
-
-
-SPOTIFYDOWN_API = "https://api.spotifydown.com"
-SPOTIFYDOWN_HEADERS = {
-    "Origin": "https://spotifydown.com",
-    "Referer": "https://spotifydown.com/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-}
+from pathlib import Path
 
 
 def detect_url_type(url: str) -> str:
@@ -25,108 +17,49 @@ def detect_url_type(url: str) -> str:
     raise ValueError(f"Unrecognized Spotify URL format: {url}")
 
 
-def extract_id(url: str) -> str:
-    """Extracts the Spotify ID from a track/playlist/album URL."""
-    match = re.search(r"spotify\.com/(?:track|playlist|album)/([A-Za-z0-9]+)", url)
-    if not match:
-        raise ValueError(f"Could not extract Spotify ID from URL: {url}")
-    return match.group(1)
-
-
-def get_track_metadata(track_id: str) -> dict:
+def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies_path: str = "") -> list[str]:
     """
-    Fetches track metadata from SpotifyDown API.
-    Returns dict with: id, title, artists, album, cover, isrc, etc.
-    Raises RuntimeError on failure.
+    Returns a fully-formed list of CLI args for spotdl.
+
+    fmt          — one of: mp3, flac, m4a, opus
+    bitrate      — one of: 128k, 192k, 256k, 320k (ignored when fmt == 'flac')
+    output_dir   — absolute path to the temp working directory for this job
+    cookies_path — optional path to a Netscape cookies.txt file for yt-dlp
     """
-    resp = requests.get(
-        f"{SPOTIFYDOWN_API}/metadata/track/{track_id}",
-        headers=SPOTIFYDOWN_HEADERS,
-        timeout=15,
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"SpotifyDown metadata failed: HTTP {resp.status_code}")
-    data = resp.json()
-    if not data.get("success"):
-        raise RuntimeError(f"SpotifyDown metadata error: {data.get('message', 'unknown')}")
-    return data
+    valid_formats = {"mp3", "flac", "m4a", "opus"}
+    valid_bitrates = {"128k", "192k", "256k", "320k"}
 
+    if fmt not in valid_formats:
+        raise ValueError(f"Invalid format '{fmt}'. Must be one of: {valid_formats}")
 
-def download_track(track_id: str) -> str:
-    """
-    Fetches a direct MP3 download URL for a track via SpotifyDown API.
-    Returns the download URL string.
-    Raises RuntimeError on failure.
-    """
-    resp = requests.get(
-        f"{SPOTIFYDOWN_API}/download/{track_id}",
-        headers=SPOTIFYDOWN_HEADERS,
-        timeout=20,
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"SpotifyDown download failed: HTTP {resp.status_code}")
-    data = resp.json()
-    if not data.get("success"):
-        raise RuntimeError(f"SpotifyDown error: {data.get('message', 'unknown')}")
-    link = data.get("link", "")
-    if not link:
-        raise RuntimeError("SpotifyDown returned no download link")
-    return link
+    if fmt != "flac" and bitrate not in valid_bitrates:
+        raise ValueError(f"Invalid bitrate '{bitrate}'. Must be one of: {valid_bitrates}")
 
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-def get_playlist_tracks(playlist_id: str) -> list[dict]:
-    """
-    Fetches all tracks from a Spotify playlist via SpotifyDown API.
-    Returns list of track dicts with at minimum 'id' and 'title' fields.
-    Handles pagination automatically.
-    """
-    tracks = []
-    page = 0
+    args = [
+        "spotdl",
+        "download",
+        url,
+        "--output", output_dir,
+        "--format", fmt,
+        "--audio", "youtube-music",  # faster + less blocked on cloud IPs
+        "--ytm-data",                # use YouTube Music metadata
+        "--preload",                 # prefetch metadata while audio downloads
+    ]
 
-    while True:
-        resp = requests.get(
-            f"{SPOTIFYDOWN_API}/trackList/playlist/{playlist_id}",
-            headers=SPOTIFYDOWN_HEADERS,
-            params={"offset": page * 100},
-            timeout=20,
-        )
-        if resp.status_code != 200:
-            raise RuntimeError(f"SpotifyDown playlist fetch failed: HTTP {resp.status_code}")
-        data = resp.json()
-        if not data.get("success"):
-            raise RuntimeError(f"SpotifyDown playlist error: {data.get('message', 'unknown')}")
+    # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
+    if fmt != "flac":
+        args.extend(["--bitrate", bitrate])
 
-        page_tracks = data.get("trackList", [])
-        tracks.extend(page_tracks)
+    # Pass cookies to yt-dlp to bypass YouTube bot detection on cloud IPs
+    if cookies_path and Path(cookies_path).exists():
+        args.extend(["--cookie-file", cookies_path])
 
-        if not data.get("nextOffset"):
-            break
-        page += 1
+    # Pass own Spotify credentials to avoid shared client rate limits
+    client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
+    if client_id and client_secret:
+        args.extend(["--client-id", client_id, "--client-secret", client_secret])
 
-    return tracks
-
-
-def get_album_tracks(album_id: str) -> list[dict]:
-    """
-    Fetches all tracks from a Spotify album via SpotifyDown API.
-    Returns list of track dicts.
-    """
-    resp = requests.get(
-        f"{SPOTIFYDOWN_API}/trackList/album/{album_id}",
-        headers=SPOTIFYDOWN_HEADERS,
-        timeout=20,
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"SpotifyDown album fetch failed: HTTP {resp.status_code}")
-    data = resp.json()
-    if not data.get("success"):
-        raise RuntimeError(f"SpotifyDown album error: {data.get('message', 'unknown')}")
-    return data.get("trackList", [])
-
-
-def safe_filename(title: str, artists: str) -> str:
-    """Builds a filesystem-safe filename from track title and artists."""
-    name = f"{artists} - {title}"
-    name = re.sub(r'[\\/*?:"<>|]', "", name)
-    name = name.strip()
-    return f"{name}.mp3"
+    return args
