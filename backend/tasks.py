@@ -16,6 +16,27 @@ from storage import delete_object, generate_presigned_url, upload_file
 REDIS_URL = os.environ["REDIS_URL"]
 JOB_TTL_SECONDS = 7200  # 2 hours
 
+_COOKIES_PATH = "/tmp/yt_cookies.txt"
+
+
+def _write_cookies_if_needed() -> None:
+    """
+    Decodes YOUTUBE_COOKIES_B64 env var and writes cookies.txt to disk once.
+    No-op if the env var is not set or file already exists.
+    """
+    b64 = os.environ.get("YOUTUBE_COOKIES_B64", "").strip()
+    if not b64:
+        return
+    if os.path.exists(_COOKIES_PATH):
+        return
+    import base64
+    try:
+        decoded = base64.b64decode(b64)
+        with open(_COOKIES_PATH, "wb") as f:
+            f.write(decoded)
+    except Exception as exc:
+        print(f"[warn] Failed to write cookies file: {exc}")
+
 celery_app = Celery("spotify_downloader", broker=REDIS_URL, backend=REDIS_URL)
 
 _ssl_config = {"ssl_cert_reqs": ssl.CERT_NONE}
@@ -91,8 +112,10 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
     try:
         Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
+        _write_cookies_if_needed()
+
         url_type = detect_url_type(url)
-        cli_args = build_spotdl_args(url, fmt, bitrate, tmp_dir)
+        cli_args = build_spotdl_args(url, fmt, bitrate, tmp_dir, cookies_path=_COOKIES_PATH)
 
         _set_job_fields(r, job_id, progress=10)
 

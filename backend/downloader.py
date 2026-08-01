@@ -21,13 +21,14 @@ def detect_url_type(url: str) -> str:
     raise ValueError(f"Unrecognized Spotify URL format: {url}")
 
 
-def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str) -> list[str]:
+def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies_path: str = "") -> list[str]:
     """
     Returns a fully-formed list of CLI args for spotdl.
 
-    fmt      — one of: mp3, flac, m4a, opus
-    bitrate  — one of: 128k, 192k, 256k, 320k (ignored when fmt == 'flac')
-    output_dir — absolute path to the temp working directory for this job
+    fmt          — one of: mp3, flac, m4a, opus
+    bitrate      — one of: 128k, 192k, 256k, 320k (ignored when fmt == 'flac')
+    output_dir   — absolute path to the temp working directory for this job
+    cookies_path — optional path to a Netscape cookies.txt file for yt-dlp
     """
     valid_formats = {"mp3", "flac", "m4a", "opus"}
     valid_bitrates = {"128k", "192k", "256k", "320k"}
@@ -50,7 +51,10 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str) -> list
 
     # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
     if fmt != "flac":
-        # spotdl expects bitrate as a plain integer string (e.g. "320k" → "320k")
         args.extend(["--bitrate", bitrate])
+
+    # Pass cookies to yt-dlp to bypass YouTube bot detection on cloud IPs
+    if cookies_path and Path(cookies_path).exists():
+        args.extend(["--cookie-file", cookies_path])
 
     return args
