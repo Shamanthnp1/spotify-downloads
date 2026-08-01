@@ -29,7 +29,7 @@ limiter = Limiter(
     app=app,
     storage_uri=REDIS_URL,
     storage_options={"ssl_cert_reqs": ssl.CERT_NONE},
-    default_limits=["5 per hour"],
+    default_limits=[],  # no global limit — applied per-route only
 )
 
 

@@ -6,7 +6,7 @@
  */
 const BACKEND_URL = "https://spotify-downloader-web.bluestone-03fb1426.eastus.azurecontainerapps.io";
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 600000; // 10 minutes
 
 // ── Element references ──────────────────────────────────────────────────────
