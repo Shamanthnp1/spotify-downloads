@@ -195,7 +195,7 @@ def debug():
 
     proxy_url = os.environ.get("PROXY_URL", "").strip()
     if proxy_url:
-        cmd.extend(["--ytdlp-args", f"--proxy {proxy_url}"])
+        cmd.extend(["--proxy", proxy_url])
 
     results["spotdl_command"] = " ".join(cmd)
 

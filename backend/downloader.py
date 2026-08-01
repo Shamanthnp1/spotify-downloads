@@ -58,13 +58,11 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
     if cookies_path and Path(cookies_path).exists():
         args.extend(["--cookie-file", cookies_path])
 
-    # Proxy is injected via HTTP_PROXY/HTTPS_PROXY env vars in the subprocess
-    # call — spotdl's --proxy flag rejects authenticated proxy URLs.
-    # Also pass proxy directly to yt-dlp via --ytdlp-args since yt-dlp
-    # doesn't always inherit HTTP_PROXY from the process environment.
+    # Pass proxy directly to yt-dlp via spotdl's --yt-dlp-args flag.
+    # Also pass via spotdl's own --proxy flag (supported in 4.5.x without IP restriction).
     proxy_url = os.environ.get("PROXY_URL", "").strip()
     if proxy_url:
-        args.extend(["--ytdlp-args", f"--proxy {proxy_url}"])
+        args.extend(["--proxy", proxy_url])
 
     # Pass own Spotify credentials to avoid shared client rate limits
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
