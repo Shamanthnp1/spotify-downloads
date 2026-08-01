@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -56,5 +57,10 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
     # Pass cookies to yt-dlp to bypass YouTube bot detection on cloud IPs
     if cookies_path and Path(cookies_path).exists():
         args.extend(["--cookie-file", cookies_path])
+
+    # Route through proxy if set — required on cloud IPs blocked by YouTube
+    proxy_url = os.environ.get("PROXY_URL", "").strip()
+    if proxy_url:
+        args.extend(["--proxy", proxy_url])
 
     return args
