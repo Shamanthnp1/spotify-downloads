@@ -140,92 +140,31 @@ def confirm_download(job_id: str):
 @limiter.exempt
 def debug():
     """
-    Diagnostic endpoint — returns environment and spotdl test output.
-    Remove this endpoint before going to production.
+    Diagnostic endpoint — tests SpotifyDown API connectivity.
+    Remove before going to production.
     """
-    import base64
-    import subprocess
-    from pathlib import Path
-
+    import requests as req
     results = {}
 
-    # 1. Check cookies env var
-    b64 = os.environ.get("YOUTUBE_COOKIES_B64", "")
-    results["cookies_env_set"] = bool(b64)
-    results["cookies_env_length"] = len(b64)
-
-    # 2. Check cookies file on disk
-    cookies_path = "/tmp/yt_cookies.txt"
-    results["cookies_file_exists"] = Path(cookies_path).exists()
-    if Path(cookies_path).exists():
-        results["cookies_file_size_bytes"] = Path(cookies_path).stat().st_size
-
-    # 3. Try to decode cookies if file missing
-    if b64 and not Path(cookies_path).exists():
-        try:
-            decoded = base64.b64decode(b64)
-            with open(cookies_path, "wb") as f:
-                f.write(decoded)
-            results["cookies_decoded_now"] = True
-            results["cookies_file_size_bytes"] = len(decoded)
-        except Exception as exc:
-            results["cookies_decode_error"] = str(exc)
-
-    results["proxy_url_in_env"] = os.environ.get("PROXY_URL", "NOT SET")
-    results["spotify_client_id_set"] = bool(os.environ.get("SPOTIFY_CLIENT_ID", ""))
-
-    # 4. Run spotdl with a short timeout to see output
-    cmd = [
-        "spotdl", "download",
-        "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
-        "--output", "/tmp/debug_test",
-        "--format", "mp3",
-    ]
-    if Path(cookies_path).exists():
-        cmd.extend(["--cookie-file", cookies_path])
-
-    client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
-    client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
-    if client_id and client_secret:
-        cmd.extend(["--client-id", client_id, "--client-secret", client_secret])
-
-    proxy_url = os.environ.get("PROXY_URL", "").strip()
-    if proxy_url:
-        cmd.extend(["--proxy", proxy_url])
-
-    results["spotdl_command"] = " ".join(cmd)
-
-    debug_env = os.environ.copy()
-    if proxy_url:
-        debug_env["HTTP_PROXY"] = proxy_url
-        debug_env["HTTPS_PROXY"] = proxy_url
-        debug_env["http_proxy"] = proxy_url
-        debug_env["https_proxy"] = proxy_url
-
+    # Test SpotifyDown API
     try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=debug_env,
+        resp = req.get(
+            "https://api.spotifydown.com/download/11dFghVXANMlKmJXsNCbNl",
+            headers={
+                "Origin": "https://spotifydown.com",
+                "Referer": "https://spotifydown.com/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            },
+            timeout=15,
         )
-        results["spotdl_returncode"] = proc.returncode
-        results["spotdl_stdout"] = proc.stdout[-3000:] if proc.stdout else ""
-        results["spotdl_stderr"] = proc.stderr[-3000:] if proc.stderr else ""
-    except subprocess.TimeoutExpired:
-        results["spotdl_error"] = "TIMEOUT — subprocess hung for 60 seconds. YouTube is blocking the request."
+        data = resp.json()
+        results["api_status"] = resp.status_code
+        results["api_success"] = data.get("success", False)
+        results["api_has_link"] = bool(data.get("link", ""))
+        results["api_message"] = data.get("message", "")
     except Exception as exc:
-        results["spotdl_error"] = str(exc)
-
-    # 5. Check ffmpeg
-    try:
-        ffmpeg = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=5)
-        results["ffmpeg_available"] = ffmpeg.returncode == 0
-        results["ffmpeg_version"] = ffmpeg.stdout.splitlines()[0] if ffmpeg.stdout else ""
-    except Exception as exc:
-        results["ffmpeg_available"] = False
-        results["ffmpeg_error"] = str(exc)
+        results["api_error"] = str(exc)
 
     return jsonify(results), 200
 
