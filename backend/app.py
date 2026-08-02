@@ -107,7 +107,7 @@ def start_download():
                         endpoint = f"https://api.spotify.com/v1/{'playlists' if url_kind == 'playlist' else 'albums'}/{sid}"
                         params = {}
                         if url_kind == "playlist":
-                            params = {"fields": "tracks.total"}
+                            params = {"fields": "tracks(total)"}
                         info_resp = _req.get(
                             endpoint,
                             headers={"Authorization": f"Bearer {token}"},
