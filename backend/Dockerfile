@@ -35,7 +35,7 @@ ENV COMMAND=web
 CMD if [ "$COMMAND" = "worker" ]; then \
         celery -A tasks.celery_app worker \
             --loglevel=info \
-            --concurrency=4 \
+            --concurrency=2 \
             --queues=celery \
             --without-heartbeat \
             --without-gossip \
