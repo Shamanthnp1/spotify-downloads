@@ -171,6 +171,21 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
             env=subprocess_env,
         )
 
+        # Check if spotdl found too many tracks (parse from stdout)
+        MAX_TRACKS = 50
+        if url_type in ("playlist", "album"):
+            import re as _re
+            found_match = _re.search(r"Found (\d+) songs", result.stdout or "")
+            if found_match:
+                found_count = int(found_match.group(1))
+                if found_count > MAX_TRACKS:
+                    _set_job_fields(
+                        r, job_id,
+                        status="error",
+                        error=f"This playlist has {found_count} tracks. Maximum allowed is {MAX_TRACKS} tracks per download. Please use a shorter playlist.",
+                    )
+                    return
+
         if result.returncode != 0:
             stderr_snippet = (result.stderr or "").strip()[-1000:]
             stdout_snippet = (result.stdout or "").strip()[-500:]
@@ -186,7 +201,6 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
                     f"stderr: {stderr_snippet} stdout: {stdout_snippet}"
                 )
             # Partial success — some tracks failed but others downloaded fine
-
         _set_job_fields(r, job_id, progress=60)
 
         # Determine what file to upload
