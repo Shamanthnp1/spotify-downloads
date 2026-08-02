@@ -41,7 +41,6 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
 
     args = [
         "spotdl",
-        "--config", config_path,
         "download",
         url,
         "--output", output_dir,

@@ -55,20 +55,22 @@ def _write_cookies_if_needed() -> None:
 
 
 _SPOTDL_CONFIG_PATH = "/tmp/spotdl_config.json"
+_SPOTDL_DEFAULT_CONFIG = "/root/.spotdl/config.json"
 
 
 def _write_spotdl_config_if_needed() -> None:
     """
-    Writes a spotdl config file with Spotify credentials so spotdl
-    uses them for its internal auth flow (required after Feb 2026 API changes).
+    Writes credentials to spotdl's default config location.
+    Required after Feb 2026 Spotify API changes.
     """
-    if os.path.exists(_SPOTDL_CONFIG_PATH):
+    if os.path.exists(_SPOTDL_DEFAULT_CONFIG):
         return
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
     client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
     if not client_id or not client_secret:
         return
     import json
+    Path(_SPOTDL_DEFAULT_CONFIG).parent.mkdir(parents=True, exist_ok=True)
     config = {
         "client_id": client_id,
         "client_secret": client_secret,
@@ -77,7 +79,7 @@ def _write_spotdl_config_if_needed() -> None:
         "no_cache": False,
     }
     try:
-        with open(_SPOTDL_CONFIG_PATH, "w") as f:
+        with open(_SPOTDL_DEFAULT_CONFIG, "w") as f:
             json.dump(config, f)
     except Exception as exc:
         print(f"[warn] Failed to write spotdl config: {exc}")
