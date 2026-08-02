@@ -46,7 +46,7 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
         "--audio", "youtube-music",
         "--audio", "youtube",        # fallback to YouTube if YTM has no results
         "--preload",                 # prefetch metadata while audio downloads
-        "--threads", "8",            # parallel downloads — IO-bound, safe on 1CPU
+        "--threads", "4",            # parallel downloads — balanced for 1CPU/4GB
     ]
 
     # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
