@@ -14,6 +14,16 @@ from storage import delete_object
 REDIS_URL = os.environ["REDIS_URL"]
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "*")
 
+# Allow both bare domain and www variant
+_allowed_origins = [FRONTEND_URL]
+if FRONTEND_URL != "*":
+    if FRONTEND_URL.startswith("https://www."):
+        _allowed_origins.append(FRONTEND_URL.replace("https://www.", "https://"))
+    elif not FRONTEND_URL.startswith("https://www."):
+        _allowed_origins.append(FRONTEND_URL.replace("https://", "https://www."))
+# Always allow the Vercel preview URL too
+_allowed_origins.append("https://spotify-downloader-eta.vercel.app")
+
 VALID_FORMATS = {"mp3", "flac", "m4a", "opus"}
 VALID_BITRATES = {"128k", "192k", "256k", "320k"}
 SPOTIFY_URL_RE = re.compile(
@@ -22,7 +32,7 @@ SPOTIFY_URL_RE = re.compile(
 
 app = Flask(__name__)
 
-CORS(app, origins=[FRONTEND_URL])
+CORS(app, origins=_allowed_origins)
 
 limiter = Limiter(
     key_func=get_remote_address,
