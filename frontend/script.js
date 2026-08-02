@@ -141,9 +141,9 @@ async function submitDownload() {
   showProgress();
   setStatus("Queuing download…", 0);
 
-  let jobId;
+  let jobResponse;
   try {
-    jobId = await enqueueJob(url, fmt, bitrate);
+    jobResponse = await enqueueJob(url, fmt, bitrate);
   } catch (err) {
     setFormLocked(false);
     hideProgress();
@@ -151,18 +151,19 @@ async function submitDownload() {
     return;
   }
 
+  const jobId = jobResponse.job_id;
+
   // Show bulk download warning as initial status label
-  let bulkWarning = null;
-  if (data.is_bulk) {
-    const count = data.track_count;
-    bulkWarning = count
+  if (jobResponse.is_bulk) {
+    const count = jobResponse.track_count;
+    const msg = count
       ? `Playlist detected (${count} tracks) — may take 5–15 minutes`
       : "Playlist/album detected — may take 5–15 minutes";
+    statusText.textContent = msg;
   }
 
   activeJobId = jobId;
   pollStartTime = Date.now();
-  if (bulkWarning) statusText.textContent = bulkWarning;
   pollStatus(jobId);
 }
 
@@ -187,7 +188,7 @@ async function enqueueJob(url, fmt, bitrate) {
     throw new Error("Server returned an invalid response.");
   }
 
-  return data.job_id;
+  return data;
 }
 
 function pollStatus(jobId) {
