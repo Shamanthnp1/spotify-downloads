@@ -54,6 +54,35 @@ def _write_cookies_if_needed() -> None:
         print(f"[warn] Failed to write cookies file: {exc}")
 
 
+_SPOTDL_CONFIG_PATH = "/tmp/spotdl_config.json"
+
+
+def _write_spotdl_config_if_needed() -> None:
+    """
+    Writes a spotdl config file with Spotify credentials so spotdl
+    uses them for its internal auth flow (required after Feb 2026 API changes).
+    """
+    if os.path.exists(_SPOTDL_CONFIG_PATH):
+        return
+    client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
+    if not client_id or not client_secret:
+        return
+    import json
+    config = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "auth_token": "",
+        "use_cache_file": False,
+        "no_cache": False,
+    }
+    try:
+        with open(_SPOTDL_CONFIG_PATH, "w") as f:
+            json.dump(config, f)
+    except Exception as exc:
+        print(f"[warn] Failed to write spotdl config: {exc}")
+
+
 def _redis() -> redis_lib.Redis:
     return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True, ssl_cert_reqs=ssl.CERT_NONE)
 
@@ -113,6 +142,7 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
         Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
         _write_cookies_if_needed()
+        _write_spotdl_config_if_needed()
 
         url_type = detect_url_type(url)
         cli_args = build_spotdl_args(url, fmt, bitrate, tmp_dir, cookies_path=_COOKIES_PATH)
