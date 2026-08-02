@@ -36,8 +36,6 @@ let pollTimer = null;
 let pollStartTime = null;
 let activeJobId = null;
 let _bulkWarningMsg = null; // persists bulk warning across fake progress ticks
-let pollStartTime = null;
-let activeJobId = null;
 
 // ── Bitrate lock when FLAC selected ────────────────────────────────────────
 // ── Continuous crawling progress ─────────────────────────────────────────────
