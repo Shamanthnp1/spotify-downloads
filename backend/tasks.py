@@ -170,18 +170,24 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
             if client_id and client_secret:
                 save_args.extend(["--client-id", client_id, "--client-secret", client_secret])
 
-            save_result = subprocess.run(
-                save_args, capture_output=True, text=True, timeout=60, env=subprocess_env,
-            )
-            found_match = _re.search(r"Found (\d+) songs", save_result.stdout or "")
-            if found_match:
-                found_count = int(found_match.group(1))
-                if found_count > MAX_TRACKS:
-                    _set_job_fields(
-                        r, job_id, status="error",
-                        error=f"This playlist has {found_count} tracks. Maximum allowed is {MAX_TRACKS}. Please use a shorter playlist.",
-                    )
-                    return
+            try:
+                save_result = subprocess.run(
+                    save_args, capture_output=True, text=True, timeout=60, env=subprocess_env,
+                )
+                found_match = _re.search(r"Found (\d+) songs", save_result.stdout or "")
+                if found_match:
+                    found_count = int(found_match.group(1))
+                    if found_count > MAX_TRACKS:
+                        _set_job_fields(
+                            r, job_id, status="error",
+                            error=f"This playlist has {found_count} tracks. Maximum allowed is {MAX_TRACKS}. Please use a shorter playlist.",
+                        )
+                        return
+            except subprocess.TimeoutExpired:
+                pass  # Can't get count — proceed with download anyway
+            except Exception:
+                pass  # Same — proceed
+
             # Clean up save file
             save_spotdl = Path(f"/tmp/{job_id}.spotdl")
             if save_spotdl.exists():
