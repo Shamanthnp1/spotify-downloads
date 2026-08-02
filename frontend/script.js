@@ -178,10 +178,13 @@ async function enqueueJob(url, fmt, bitrate) {
     throw new Error("Server returned an invalid response.");
   }
 
-  // Show bulk download warning
+  // Show bulk download warning in status text
   if (data.is_bulk) {
-    const hint = document.getElementById("progress-hint");
-    if (hint) hint.textContent = "Playlist/album download — this may take 5-15 minutes depending on size. Hang tight.";
+    const count = data.track_count;
+    const msg = count
+      ? `Playlist detected (${count} tracks) — this may take 5–15 minutes. Your file will auto-download when ready.`
+      : "Playlist/album detected — this may take 5–15 minutes depending on size.";
+    statusText.textContent = msg;
   }
 
   return data.job_id;

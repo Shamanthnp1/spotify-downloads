@@ -80,6 +80,53 @@ def start_download():
     # Warn the frontend about large playlists — don't block, just flag it
     url_type_match = SPOTIFY_URL_RE.match(url)
     is_bulk = url_type_match and url_type_match.group(1) in ("playlist", "album")
+
+    # For playlists/albums, check track count via Spotify API before queuing
+    track_count = None
+    if is_bulk:
+        try:
+            import re as _re
+            spotify_id = _re.search(r"/(playlist|album)/([A-Za-z0-9]+)", url)
+            if spotify_id:
+                url_kind = spotify_id.group(1)
+                sid = spotify_id.group(2)
+                client_id = os.environ.get("SPOTIFY_CLIENT_ID", "")
+                client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+                if client_id and client_secret:
+                    import base64
+                    import requests as _req
+                    token_resp = _req.post(
+                        "https://accounts.spotify.com/api/token",
+                        data={"grant_type": "client_credentials"},
+                        headers={"Authorization": "Basic " + base64.b64encode(
+                            f"{client_id}:{client_secret}".encode()).decode()},
+                        timeout=8,
+                    )
+                    if token_resp.status_code == 200:
+                        token = token_resp.json().get("access_token", "")
+                        endpoint = f"https://api.spotify.com/v1/{'playlists' if url_kind == 'playlist' else 'albums'}/{sid}"
+                        info_resp = _req.get(
+                            endpoint,
+                            headers={"Authorization": f"Bearer {token}"},
+                            params={"fields": "tracks.total"} if url_kind == "playlist" else {"market": "US"},
+                            timeout=8,
+                        )
+                        if info_resp.status_code == 200:
+                            data_info = info_resp.json()
+                            if url_kind == "playlist":
+                                track_count = data_info.get("tracks", {}).get("total", 0)
+                            else:
+                                track_count = data_info.get("total_tracks", 0)
+        except Exception:
+            pass  # If check fails, let the job proceed
+
+    MAX_TRACKS = 50
+    if track_count is not None and track_count > MAX_TRACKS:
+        return _error(
+            f"This playlist has {track_count} tracks. Maximum allowed is {MAX_TRACKS} tracks per download. "
+            f"Please use a shorter playlist or download individual tracks.",
+            400
+        )
     if fmt == "flac" and bitrate and bitrate not in VALID_BITRATES:
         # bitrate is ignored for flac but don't fail on a supplied value
         pass
@@ -100,7 +147,7 @@ def start_download():
     from tasks import run_download
     run_download.apply_async(args=[job_id, url, fmt, bitrate])
 
-    return jsonify({"job_id": job_id, "is_bulk": bool(is_bulk)}), 202
+    return jsonify({"job_id": job_id, "is_bulk": bool(is_bulk), "track_count": track_count}), 202
 
 
 @app.route("/api/status/<job_id>", methods=["GET"])
