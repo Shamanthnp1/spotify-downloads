@@ -139,10 +139,18 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
         if result.returncode != 0:
             stderr_snippet = (result.stderr or "").strip()[-1000:]
             stdout_snippet = (result.stdout or "").strip()[-500:]
-            raise RuntimeError(
-                f"spotdl exited with code {result.returncode}. "
-                f"stderr: {stderr_snippet} stdout: {stdout_snippet}"
-            )
+            # Check if any audio files were actually downloaded despite errors
+            audio_extensions = {".mp3", ".flac", ".m4a", ".opus", ".ogg"}
+            downloaded_files = [
+                p for p in Path(tmp_dir).iterdir()
+                if p.is_file() and p.suffix.lower() in audio_extensions
+            ]
+            if not downloaded_files:
+                raise RuntimeError(
+                    f"spotdl exited with code {result.returncode}. "
+                    f"stderr: {stderr_snippet} stdout: {stdout_snippet}"
+                )
+            # Partial success — some tracks failed but others downloaded fine
 
         _set_job_fields(r, job_id, progress=60)
 
