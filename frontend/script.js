@@ -37,41 +37,44 @@ let pollStartTime = null;
 let activeJobId = null;
 
 // ── Bitrate lock when FLAC selected ────────────────────────────────────────
-// ── Fake progress advance ────────────────────────────────────────────────
-// Advances bar every 3s so it never looks stuck. Caps at 90% until real done.
+// ── Continuous crawling progress ─────────────────────────────────────────────
+// Advances every 400ms using an easing curve — fast early, slows near 95%.
+// Never reaches 100% on its own. Snaps to 100% only when job is done.
 let _fakeProgressTimer = null;
 let _fakeProgressVal = 0;
 
-const FAKE_STEPS = [
-  { pct: 8,  label: "Queuing download…" },
-  { pct: 18, label: "Fetching track info…" },
-  { pct: 32, label: "Searching for audio…" },
-  { pct: 48, label: "Downloading audio…" },
-  { pct: 62, label: "Downloading audio…" },
-  { pct: 74, label: "Converting format…" },
-  { pct: 83, label: "Almost done…" },
-  { pct: 90, label: "Finishing up…" },
+const PROGRESS_LABELS = [
+  { at: 0,  label: "Queuing download…" },
+  { at: 15, label: "Fetching track info…" },
+  { at: 30, label: "Searching for audio…" },
+  { at: 50, label: "Downloading audio…" },
+  { at: 70, label: "Converting format…" },
+  { at: 85, label: "Almost done…" },
+  { at: 93, label: "Finishing up…" },
 ];
+
+function _labelForProgress(pct) {
+  let label = PROGRESS_LABELS[0].label;
+  for (const entry of PROGRESS_LABELS) {
+    if (pct >= entry.at) label = entry.label;
+  }
+  return label;
+}
 
 function startFakeProgress() {
   _fakeProgressVal = 0;
-  let stepIdx = 0;
-  // Remove indeterminate animation immediately so width changes are visible
   progressBarFill.classList.remove("progress-bar-fill--indeterminate");
   clearInterval(_fakeProgressTimer);
+  _setBar(0, "Starting…");
+
   _fakeProgressTimer = setInterval(() => {
-    if (stepIdx >= FAKE_STEPS.length) {
-      clearInterval(_fakeProgressTimer);
-      return;
-    }
-    const step = FAKE_STEPS[stepIdx];
-    _setBar(step.pct, step.label);
-    stepIdx++;
-  }, 3000);
-  // Kick the first step immediately — don't wait 3s to start
-  const first = FAKE_STEPS[stepIdx];
-  _setBar(first.pct, first.label);
-  stepIdx++;
+    if (_fakeProgressVal >= 95) return; // Hold at 95, wait for real done
+    // Easing: moves fast until ~50%, then progressively slower
+    const remaining = 95 - _fakeProgressVal;
+    const increment = Math.max(0.15, remaining * 0.025);
+    _fakeProgressVal = Math.min(95, _fakeProgressVal + increment);
+    _setBar(_fakeProgressVal, _labelForProgress(_fakeProgressVal));
+  }, 400);
 }
 
 function stopFakeProgress() {
@@ -82,9 +85,8 @@ function stopFakeProgress() {
 function _setBar(pct, label) {
   const p = Math.max(0, Math.min(100, pct));
   progressBarFill.style.width = `${p}%`;
-  progressBarTrack.setAttribute("aria-valuenow", p);
+  progressBarTrack.setAttribute("aria-valuenow", Math.round(p));
   if (label) statusText.textContent = label;
-  if (p > 0) progressBarFill.classList.remove("progress-bar-fill--indeterminate");
 }
 const FORMAT_HINTS = {
   mp3:  "Lossy — smaller file, universal compatibility",

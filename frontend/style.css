@@ -569,7 +569,7 @@ img, svg { display: block; }
   width: 0%;
   background: linear-gradient(90deg, var(--green-500), var(--green-300));
   border-radius: var(--radius-pill);
-  transition: width var(--t-slow) ease-out;
+  transition: width 350ms ease-out;
 }
 
 .progress-bar-fill--indeterminate {
