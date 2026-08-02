@@ -35,6 +35,9 @@ const retryBtn = document.getElementById("retry-btn");
 let pollTimer = null;
 let pollStartTime = null;
 let activeJobId = null;
+let _bulkWarningMsg = null; // persists bulk warning across fake progress ticks
+let pollStartTime = null;
+let activeJobId = null;
 
 // ── Bitrate lock when FLAC selected ────────────────────────────────────────
 // ── Continuous crawling progress ─────────────────────────────────────────────
@@ -85,7 +88,12 @@ function _setBar(pct, label) {
   const p = Math.max(0, Math.min(100, pct));
   progressBarFill.style.width = `${p}%`;
   progressBarTrack.setAttribute("aria-valuenow", Math.round(p));
-  if (label !== null && label !== undefined) statusText.textContent = label;
+  // Don't overwrite bulk warning until bar is past 15%
+  if (label !== null && label !== undefined) {
+    if (!_bulkWarningMsg || p >= 15) {
+      statusText.textContent = label;
+    }
+  }
 }
 const FORMAT_HINTS = {
   mp3:  "Lossy — smaller file, universal compatibility",
@@ -159,7 +167,10 @@ async function submitDownload() {
     const msg = count
       ? `Playlist detected (${count} tracks) — may take 5–15 minutes`
       : "Playlist/album detected — may take 5–15 minutes";
+    _bulkWarningMsg = msg;
     statusText.textContent = msg;
+  } else {
+    _bulkWarningMsg = null;
   }
 
   activeJobId = jobId;
@@ -334,6 +345,7 @@ function showError(message) {
 function resetUI() {
   clearTimeout(pollTimer);
   stopFakeProgress();
+  _bulkWarningMsg = null;
   activeJobId = null;
   pollStartTime = null;
 

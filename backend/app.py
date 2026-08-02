@@ -105,10 +105,13 @@ def start_download():
                     if token_resp.status_code == 200:
                         token = token_resp.json().get("access_token", "")
                         endpoint = f"https://api.spotify.com/v1/{'playlists' if url_kind == 'playlist' else 'albums'}/{sid}"
+                        params = {}
+                        if url_kind == "playlist":
+                            params = {"fields": "tracks.total"}
                         info_resp = _req.get(
                             endpoint,
                             headers={"Authorization": f"Bearer {token}"},
-                            params={"fields": "tracks.total"} if url_kind == "playlist" else {"market": "US"},
+                            params=params,
                             timeout=8,
                         )
                         if info_resp.status_code == 200:
