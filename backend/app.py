@@ -76,6 +76,10 @@ def start_download():
         return _error(
             f"Invalid bitrate '{bitrate}'. Must be one of: {sorted(VALID_BITRATES)}.", 400
         )
+
+    # Warn the frontend about large playlists — don't block, just flag it
+    url_type_match = SPOTIFY_URL_RE.match(url)
+    is_bulk = url_type_match and url_type_match.group(1) in ("playlist", "album")
     if fmt == "flac" and bitrate and bitrate not in VALID_BITRATES:
         # bitrate is ignored for flac but don't fail on a supplied value
         pass
@@ -96,7 +100,7 @@ def start_download():
     from tasks import run_download
     run_download.apply_async(args=[job_id, url, fmt, bitrate])
 
-    return jsonify({"job_id": job_id}), 202
+    return jsonify({"job_id": job_id, "is_bulk": bool(is_bulk)}), 202
 
 
 @app.route("/api/status/<job_id>", methods=["GET"])

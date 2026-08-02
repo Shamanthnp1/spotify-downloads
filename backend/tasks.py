@@ -128,11 +128,14 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
             subprocess_env["http_proxy"] = proxy_url
             subprocess_env["https_proxy"] = proxy_url
 
+        # Playlists/albums get more time — 4 threads × longer track lists
+        job_timeout = 1800 if url_type in ("playlist", "album") else 600
+
         result = subprocess.run(
             cli_args,
             capture_output=True,
             text=True,
-            timeout=600,  # 10 minutes max per job
+            timeout=job_timeout,
             env=subprocess_env,
         )
 

@@ -7,7 +7,7 @@
 const BACKEND_URL = "https://spotify-downloader-web.bluestone-03fb1426.eastus.azurecontainerapps.io";
 
 const POLL_INTERVAL_MS = 5000;
-const POLL_TIMEOUT_MS = 600000; // 10 minutes
+const POLL_TIMEOUT_MS = 1800000; // 30 minutes — enough for large playlists
 
 // ── Element references ──────────────────────────────────────────────────────
 const form = document.getElementById("download-form");
@@ -176,6 +176,12 @@ async function enqueueJob(url, fmt, bitrate) {
 
   if (!data.job_id) {
     throw new Error("Server returned an invalid response.");
+  }
+
+  // Show bulk download warning
+  if (data.is_bulk) {
+    const hint = document.getElementById("progress-hint");
+    if (hint) hint.textContent = "Playlist/album download — this may take 5-15 minutes depending on size. Hang tight.";
   }
 
   return data.job_id;
