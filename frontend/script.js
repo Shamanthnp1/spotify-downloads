@@ -65,11 +65,10 @@ function startFakeProgress() {
   _fakeProgressVal = 0;
   progressBarFill.classList.remove("progress-bar-fill--indeterminate");
   clearInterval(_fakeProgressTimer);
-  _setBar(0, "Starting…");
+  _setBar(0, null); // don't overwrite status text on start
 
   _fakeProgressTimer = setInterval(() => {
-    if (_fakeProgressVal >= 95) return; // Hold at 95, wait for real done
-    // Easing: moves fast until ~50%, then progressively slower
+    if (_fakeProgressVal >= 95) return;
     const remaining = 95 - _fakeProgressVal;
     const increment = Math.max(0.15, remaining * 0.025);
     _fakeProgressVal = Math.min(95, _fakeProgressVal + increment);
@@ -86,7 +85,7 @@ function _setBar(pct, label) {
   const p = Math.max(0, Math.min(100, pct));
   progressBarFill.style.width = `${p}%`;
   progressBarTrack.setAttribute("aria-valuenow", Math.round(p));
-  if (label) statusText.textContent = label;
+  if (label !== null && label !== undefined) statusText.textContent = label;
 }
 const FORMAT_HINTS = {
   mp3:  "Lossy — smaller file, universal compatibility",
@@ -152,8 +151,18 @@ async function submitDownload() {
     return;
   }
 
+  // Show bulk download warning as initial status label
+  let bulkWarning = null;
+  if (data.is_bulk) {
+    const count = data.track_count;
+    bulkWarning = count
+      ? `Playlist detected (${count} tracks) — may take 5–15 minutes`
+      : "Playlist/album detected — may take 5–15 minutes";
+  }
+
   activeJobId = jobId;
   pollStartTime = Date.now();
+  if (bulkWarning) statusText.textContent = bulkWarning;
   pollStatus(jobId);
 }
 
@@ -176,15 +185,6 @@ async function enqueueJob(url, fmt, bitrate) {
 
   if (!data.job_id) {
     throw new Error("Server returned an invalid response.");
-  }
-
-  // Show bulk download warning in status text
-  if (data.is_bulk) {
-    const count = data.track_count;
-    const msg = count
-      ? `Playlist detected (${count} tracks) — this may take 5–15 minutes. Your file will auto-download when ready.`
-      : "Playlist/album detected — this may take 5–15 minutes depending on size.";
-    statusText.textContent = msg;
   }
 
   return data.job_id;
