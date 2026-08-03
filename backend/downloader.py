@@ -46,8 +46,7 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
         "--output", output_dir,
         "--format", fmt,
         "--audio", "youtube-music",
-        "--audio", "youtube",        # fallback 1
-        "--audio", "soundcloud",     # fallback 2 — better Indian/regional coverage
+        "--audio", "youtube",        # fallback — YouTube has broader coverage
         "--preload",                 # prefetch metadata while audio downloads
         "--threads", "4",
     ]
