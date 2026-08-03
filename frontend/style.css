@@ -948,3 +948,26 @@ img, svg { display: block; }
   0%, 100% { transform: scale(1);   opacity: 1; }
   50%       { transform: scale(1.4); opacity: 0.7; }
 }
+
+/* ── Content body ────────────────────────────────────────────────────────── */
+.content-body {
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+  font-size: 0.9375rem;
+}
+
+.content-body p {
+  margin-bottom: 1rem;
+}
+
+.content-body h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.content-body h3:first-child {
+  margin-top: 0;
+}
