@@ -66,8 +66,16 @@ def start_download():
         return _error("'url' is required.", 400)
     if not SPOTIFY_URL_RE.match(url):
         return _error(
-            "Invalid URL. Only Spotify track, playlist, or album URLs are accepted.", 400
+            "Invalid URL. Only Spotify track URLs are accepted.", 400
         )
+
+    # Only tracks supported — reject playlists and albums
+    url_type_match = SPOTIFY_URL_RE.match(url)
+    if url_type_match and url_type_match.group(1) in ("playlist", "album"):
+        return _error(
+            "Playlist and album downloads are temporarily unavailable. Please paste a single track URL.", 400
+        )
+
     if fmt not in VALID_FORMATS:
         return _error(
             f"Invalid format '{fmt}'. Must be one of: {sorted(VALID_FORMATS)}.", 400
@@ -77,33 +85,8 @@ def start_download():
             f"Invalid bitrate '{bitrate}'. Must be one of: {sorted(VALID_BITRATES)}.", 400
         )
 
-    # Check bulk type and track count via Spotify API
-    url_type_match = SPOTIFY_URL_RE.match(url)
-    is_bulk = url_type_match and url_type_match.group(1) in ("playlist", "album")
+    is_bulk = False
     track_count = None
-
-    if is_bulk:
-        try:
-            import re as _re
-            spotify_id_match = _re.search(r"/(playlist|album)/([A-Za-z0-9]+)", url)
-            if spotify_id_match:
-                from spotify_api import get_track_count as _get_count
-                url_kind = spotify_id_match.group(1)
-                sid = spotify_id_match.group(2)
-                track_count = _get_count(url_kind, sid)
-        except Exception:
-            pass
-
-    MAX_TRACKS = 50
-    if track_count is not None and track_count > MAX_TRACKS:
-        return _error(
-            f"This playlist has {track_count} tracks. Maximum allowed is {MAX_TRACKS} tracks per download. "
-            f"Please use a shorter playlist or download individual tracks.",
-            400
-        )
-    if fmt == "flac" and bitrate and bitrate not in VALID_BITRATES:
-        # bitrate is ignored for flac but don't fail on a supplied value
-        pass
 
     job_id = str(uuid.uuid4())
 
