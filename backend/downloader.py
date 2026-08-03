@@ -42,13 +42,14 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
     args = [
         "spotdl",
         "download",
-        url,
+        url.split("?")[0],           # strip ?si= tracking params
         "--output", output_dir,
         "--format", fmt,
         "--audio", "youtube-music",
-        "--audio", "youtube",        # fallback to YouTube if YTM has no results
+        "--audio", "youtube",        # fallback 1
+        "--audio", "soundcloud",     # fallback 2 — better Indian/regional coverage
         "--preload",                 # prefetch metadata while audio downloads
-        "--threads", "4",            # parallel downloads — balanced for 1CPU/4GB
+        "--threads", "4",
     ]
 
     # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
