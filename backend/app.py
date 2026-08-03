@@ -154,40 +154,6 @@ def confirm_download(job_id: str):
     return jsonify({"message": "File deleted from storage. Thank you."}), 200
 
 
-@app.route("/api/debug", methods=["GET"])
-@limiter.exempt
-def debug():
-    """
-    Diagnostic endpoint — tests SpotifyDown API connectivity.
-    Remove before going to production.
-    """
-    import requests as req
-    results = {}
-
-    # Test SpotifyDown API
-    try:
-        resp = req.get(
-            "https://api.spotifydown.com/download/11dFghVXANMlKmJXsNCbNl",
-            headers={
-                "Origin": "https://spotifydown.com",
-                "Referer": "https://spotifydown.com/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            },
-            timeout=15,
-        )
-        data = resp.json()
-        results["api_status"] = resp.status_code
-        results["api_success"] = data.get("success", False)
-        results["api_has_link"] = bool(data.get("link", ""))
-        results["api_message"] = data.get("message", "")
-    except Exception as exc:
-        results["api_error"] = str(exc)
-
-    return jsonify(results), 200
-
-
-
 def rate_limit_exceeded(exc):
     return _error("Rate limit exceeded. Maximum 5 downloads per hour per IP.", 429)
 
