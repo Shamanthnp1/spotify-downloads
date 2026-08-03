@@ -4,10 +4,6 @@ from pathlib import Path
 
 
 def detect_url_type(url: str) -> str:
-    """
-    Returns 'track', 'playlist', or 'album' based on Spotify URL pattern.
-    Raises ValueError for unrecognized Spotify URL shapes.
-    """
     if re.search(r"open\.spotify\.com/track/", url):
         return "track"
     if re.search(r"open\.spotify\.com/playlist/", url):
@@ -20,11 +16,6 @@ def detect_url_type(url: str) -> str:
 def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies_path: str = "") -> list[str]:
     """
     Returns a fully-formed list of CLI args for spotdl.
-
-    fmt          — one of: mp3, flac, m4a, opus
-    bitrate      — one of: 128k, 192k, 256k, 320k (ignored when fmt == 'flac')
-    output_dir   — absolute path to the temp working directory for this job
-    cookies_path — optional path to a Netscape cookies.txt file for yt-dlp
     """
     valid_formats = {"mp3", "flac", "m4a", "opus"}
     valid_bitrates = {"128k", "192k", "256k", "320k"}
@@ -37,29 +28,30 @@ def build_spotdl_args(url: str, fmt: str, bitrate: str, output_dir: str, cookies
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    config_path = "/tmp/spotdl_config.json"
+    # Strip ?si= tracking params from URL
+    clean_url = url.split("?")[0]
 
     args = [
         "spotdl",
         "download",
-        url.split("?")[0],           # strip ?si= tracking params
+        clean_url,
         "--output", output_dir,
         "--format", fmt,
         "--audio", "youtube-music",
-        "--audio", "youtube",        # fallback — YouTube has broader coverage
-        "--preload",                 # prefetch metadata while audio downloads
-        "--threads", "4",
+        "--audio", "youtube",
+        "--ytm-data",
+        "--preload",
     ]
 
-    # FLAC is lossless — bitrate flag is meaningless and spotdl will reject it
+    # FLAC is lossless — bitrate flag is meaningless
     if fmt != "flac":
         args.extend(["--bitrate", bitrate])
 
-    # Pass cookies to yt-dlp to bypass YouTube bot detection on cloud IPs
+    # Pass cookies to yt-dlp
     if cookies_path and Path(cookies_path).exists():
         args.extend(["--cookie-file", cookies_path])
 
-    # Pass own Spotify credentials to avoid shared client rate limits
+    # Pass Spotify credentials
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
     client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
     if client_id and client_secret:

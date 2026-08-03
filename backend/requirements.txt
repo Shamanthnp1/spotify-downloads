@@ -6,5 +6,4 @@ flask-cors==4.0.1
 flask-limiter==3.8.0
 gunicorn==22.0.0
 spotdl==4.5.2
-spotipyFree
 requests==2.32.3
