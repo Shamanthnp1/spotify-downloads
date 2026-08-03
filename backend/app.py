@@ -77,51 +77,22 @@ def start_download():
             f"Invalid bitrate '{bitrate}'. Must be one of: {sorted(VALID_BITRATES)}.", 400
         )
 
-    # Warn the frontend about large playlists — don't block, just flag it
+    # Check bulk type and track count via Spotify API
     url_type_match = SPOTIFY_URL_RE.match(url)
     is_bulk = url_type_match and url_type_match.group(1) in ("playlist", "album")
-
-    # For playlists/albums, check track count via Spotify API before queuing
     track_count = None
+
     if is_bulk:
         try:
             import re as _re
-            spotify_id = _re.search(r"/(playlist|album)/([A-Za-z0-9]+)", url)
-            if spotify_id:
-                url_kind = spotify_id.group(1)
-                sid = spotify_id.group(2)
-                client_id = os.environ.get("SPOTIFY_CLIENT_ID", "")
-                client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
-                if client_id and client_secret:
-                    import base64
-                    import requests as _req
-                    token_resp = _req.post(
-                        "https://accounts.spotify.com/api/token",
-                        data={"grant_type": "client_credentials"},
-                        headers={"Authorization": "Basic " + base64.b64encode(
-                            f"{client_id}:{client_secret}".encode()).decode()},
-                        timeout=8,
-                    )
-                    if token_resp.status_code == 200:
-                        token = token_resp.json().get("access_token", "")
-                        endpoint = f"https://api.spotify.com/v1/{'playlists' if url_kind == 'playlist' else 'albums'}/{sid}"
-                        params = {}
-                        if url_kind == "playlist":
-                            params = {"fields": "tracks(total)"}
-                        info_resp = _req.get(
-                            endpoint,
-                            headers={"Authorization": f"Bearer {token}"},
-                            params=params,
-                            timeout=8,
-                        )
-                        if info_resp.status_code == 200:
-                            data_info = info_resp.json()
-                            if url_kind == "playlist":
-                                track_count = data_info.get("tracks", {}).get("total", 0)
-                            else:
-                                track_count = data_info.get("total_tracks", 0)
+            spotify_id_match = _re.search(r"/(playlist|album)/([A-Za-z0-9]+)", url)
+            if spotify_id_match:
+                from spotify_api import get_track_count as _get_count
+                url_kind = spotify_id_match.group(1)
+                sid = spotify_id_match.group(2)
+                track_count = _get_count(url_kind, sid)
         except Exception:
-            pass  # If check fails, let the job proceed
+            pass
 
     MAX_TRACKS = 50
     if track_count is not None and track_count > MAX_TRACKS:

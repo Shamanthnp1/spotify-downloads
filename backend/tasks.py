@@ -1,9 +1,10 @@
 import os
+import re
 import shutil
 import ssl
 import subprocess
-import tempfile
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,10 +12,12 @@ import redis as redis_lib
 from celery import Celery
 
 from downloader import build_spotdl_args, detect_url_type
-from storage import delete_object, generate_presigned_url, upload_file
+from spotify_api import get_album_track_urls, get_playlist_track_urls
+from storage import generate_presigned_url, upload_file
 
 REDIS_URL = os.environ["REDIS_URL"]
 JOB_TTL_SECONDS = 7200  # 2 hours
+MAX_TRACKS = 50
 
 celery_app = Celery("spotify_downloader", broker=REDIS_URL, backend=REDIS_URL)
 
@@ -33,36 +36,22 @@ celery_app.conf.update(
 )
 
 _COOKIES_PATH = "/tmp/yt_cookies.txt"
-
-
-def _write_cookies_if_needed() -> None:
-    """
-    Decodes YOUTUBE_COOKIES_B64 env var and writes cookies.txt to disk once.
-    No-op if the env var is not set or file already exists.
-    """
-    b64 = os.environ.get("YOUTUBE_COOKIES_B64", "").strip()
-    if not b64:
-        return
-    if os.path.exists(_COOKIES_PATH):
-        return
-    import base64
-    try:
-        decoded = base64.b64decode(b64)
-        with open(_COOKIES_PATH, "wb") as f:
-            f.write(decoded)
-    except Exception as exc:
-        print(f"[warn] Failed to write cookies file: {exc}")
-
-
-_SPOTDL_CONFIG_PATH = "/tmp/spotdl_config.json"
 _SPOTDL_DEFAULT_CONFIG = "/root/.spotdl/config.json"
 
 
+def _write_cookies_if_needed() -> None:
+    b64 = os.environ.get("YOUTUBE_COOKIES_B64", "").strip()
+    if not b64 or os.path.exists(_COOKIES_PATH):
+        return
+    import base64
+    try:
+        with open(_COOKIES_PATH, "wb") as f:
+            f.write(base64.b64decode(b64))
+    except Exception as exc:
+        print(f"[warn] Failed to write cookies: {exc}")
+
+
 def _write_spotdl_config_if_needed() -> None:
-    """
-    Writes credentials to spotdl's default config location.
-    Required after Feb 2026 Spotify API changes.
-    """
     if os.path.exists(_SPOTDL_DEFAULT_CONFIG):
         return
     client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
@@ -71,16 +60,10 @@ def _write_spotdl_config_if_needed() -> None:
         return
     import json
     Path(_SPOTDL_DEFAULT_CONFIG).parent.mkdir(parents=True, exist_ok=True)
-    config = {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "auth_token": "",
-        "use_cache_file": False,
-        "no_cache": False,
-    }
     try:
         with open(_SPOTDL_DEFAULT_CONFIG, "w") as f:
-            json.dump(config, f)
+            json.dump({"client_id": client_id, "client_secret": client_secret,
+                       "auth_token": "", "use_cache_file": False, "no_cache": False}, f)
     except Exception as exc:
         print(f"[warn] Failed to write spotdl config: {exc}")
 
@@ -90,68 +73,47 @@ def _redis() -> redis_lib.Redis:
 
 
 def _set_job_fields(r: redis_lib.Redis, job_id: str, **fields) -> None:
-    key = f"job:{job_id}"
-    r.hset(key, mapping={k: str(v) for k, v in fields.items()})
-    r.expire(key, JOB_TTL_SECONDS)
+    r.hset(f"job:{job_id}", mapping={k: str(v) for k, v in fields.items()})
+    r.expire(f"job:{job_id}", JOB_TTL_SECONDS)
 
 
-def _zip_directory(source_dir: str, zip_path: str) -> None:
+def _download_single_track(track_url: str, fmt: str, bitrate: str,
+                            output_dir: str, subprocess_env: dict) -> Path | None:
     """
-    Zips all files in source_dir (non-recursively) into zip_path.
-    Raises RuntimeError if no downloadable files are found.
+    Downloads a single track via spotdl.
+    Returns the Path to the downloaded file, or None on failure.
     """
-    files = [
-        p for p in Path(source_dir).iterdir()
-        if p.is_file() and not p.name.endswith(".spotdl")
-    ]
-    if not files:
-        raise RuntimeError(f"spotdl produced no output files in {source_dir}")
-
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for fpath in files:
-            zf.write(fpath, arcname=fpath.name)
+    args = build_spotdl_args(track_url, fmt, bitrate, output_dir,
+                             cookies_path=_COOKIES_PATH)
+    try:
+        result = subprocess.run(
+            args, capture_output=True, text=True, timeout=120, env=subprocess_env,
+        )
+        audio_extensions = {".mp3", ".flac", ".m4a", ".opus", ".ogg"}
+        candidates = [
+            p for p in Path(output_dir).iterdir()
+            if p.is_file() and p.suffix.lower() in audio_extensions
+        ]
+        return candidates[0] if candidates else None
+    except Exception:
+        return None
 
 
 @celery_app.task(bind=True, name="tasks.run_download", max_retries=0)
 def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
-    """
-    Main download task using spotdl — supports all formats and bitrates.
-
-    Flow:
-        queued → processing → done   (happy path)
-        queued → processing → error  (any failure)
-
-    Redis job hash fields:
-        status       — queued | processing | done | error | downloaded
-        progress     — 0-100 integer string
-        filename     — final filename (set on done)
-        download_url — presigned R2 URL (set on done)
-        object_key   — R2 object key (set on done)
-        error        — error message (set on error)
-        created_at   — ISO-8601 UTC timestamp
-    """
     r = _redis()
     tmp_dir = f"/tmp/{job_id}"
 
-    _set_job_fields(
-        r, job_id,
-        status="processing",
-        progress=0,
-        created_at=datetime.now(tz=timezone.utc).isoformat(),
-    )
+    _set_job_fields(r, job_id, status="processing", progress=0,
+                    created_at=datetime.now(tz=timezone.utc).isoformat())
 
     try:
         Path(tmp_dir).mkdir(parents=True, exist_ok=True)
-
         _write_cookies_if_needed()
         _write_spotdl_config_if_needed()
 
         url_type = detect_url_type(url)
-        cli_args = build_spotdl_args(url, fmt, bitrate, tmp_dir, cookies_path=_COOKIES_PATH)
 
-        _set_job_fields(r, job_id, progress=10)
-
-        # Inject proxy via subprocess environment
         subprocess_env = os.environ.copy()
         proxy_url = os.environ.get("PROXY_URL", "").strip()
         if proxy_url:
@@ -160,92 +122,134 @@ def run_download(self, job_id: str, url: str, fmt: str, bitrate: str) -> None:
             subprocess_env["http_proxy"] = proxy_url
             subprocess_env["https_proxy"] = proxy_url
 
-        # Playlists/albums get more time — 4 threads × longer track lists
-        job_timeout = 1800 if url_type in ("playlist", "album") else 600
+        _set_job_fields(r, job_id, progress=5)
 
-        result = subprocess.run(
-            cli_args,
-            capture_output=True,
-            text=True,
-            timeout=job_timeout,
-            env=subprocess_env,
-        )
+        if url_type == "track":
+            # ── Single track — direct spotdl download ──────────────────────
+            cli_args = build_spotdl_args(url, fmt, bitrate, tmp_dir,
+                                         cookies_path=_COOKIES_PATH)
+            _set_job_fields(r, job_id, progress=10)
 
-        if result.returncode != 0:
-            stderr_snippet = (result.stderr or "").strip()[-1000:]
-            stdout_snippet = (result.stdout or "").strip()[-500:]
-            # Check if any audio files were actually downloaded despite errors
+            result = subprocess.run(
+                cli_args, capture_output=True, text=True,
+                timeout=300, env=subprocess_env,
+            )
+
+            if result.returncode != 0:
+                audio_extensions = {".mp3", ".flac", ".m4a", ".opus", ".ogg"}
+                candidates = [p for p in Path(tmp_dir).iterdir()
+                              if p.is_file() and p.suffix.lower() in audio_extensions]
+                if not candidates:
+                    stderr = (result.stderr or "").strip()[-800:]
+                    stdout = (result.stdout or "").strip()[-400:]
+                    raise RuntimeError(
+                        f"spotdl exited with code {result.returncode}. "
+                        f"stderr: {stderr} stdout: {stdout}"
+                    )
+
+            _set_job_fields(r, job_id, progress=70)
+
             audio_extensions = {".mp3", ".flac", ".m4a", ".opus", ".ogg"}
-            downloaded_files = [
-                p for p in Path(tmp_dir).iterdir()
-                if p.is_file() and p.suffix.lower() in audio_extensions
-            ]
-            if not downloaded_files:
-                raise RuntimeError(
-                    f"spotdl exited with code {result.returncode}. "
-                    f"stderr: {stderr_snippet} stdout: {stdout_snippet}"
-                )
-            # Partial success — some tracks failed but others downloaded fine
-        _set_job_fields(r, job_id, progress=60)
-
-        # Determine what file to upload
-        if url_type in ("playlist", "album"):
-            zip_path = f"/tmp/{job_id}.zip"
-            _zip_directory(tmp_dir, zip_path)
-            local_upload_path = zip_path
-            filename = f"{job_id}.zip"
-        else:
-            # Single track — find the one audio file
-            audio_extensions = {".mp3", ".flac", ".m4a", ".opus", ".ogg"}
-            candidates = [
-                p for p in Path(tmp_dir).iterdir()
-                if p.is_file() and p.suffix.lower() in audio_extensions
-            ]
+            candidates = [p for p in Path(tmp_dir).iterdir()
+                          if p.is_file() and p.suffix.lower() in audio_extensions]
             if not candidates:
-                raise RuntimeError(
-                    f"spotdl produced no audio file in {tmp_dir}. "
-                    f"stdout: {result.stdout[-500:]}"
-                )
+                raise RuntimeError(f"spotdl produced no audio file. stdout: {result.stdout[-400:]}")
+
             local_upload_path = str(candidates[0])
             filename = candidates[0].name
 
-        _set_job_fields(r, job_id, progress=70)
+        else:
+            # ── Playlist / Album — fetch track list via Spotify API,
+            #    download each track individually in parallel ─────────────
+            _set_job_fields(r, job_id, progress=8)
 
+            # Extract Spotify ID
+            id_match = re.search(r"/(playlist|album)/([A-Za-z0-9]+)", url)
+            if not id_match:
+                raise RuntimeError(f"Could not extract Spotify ID from URL: {url}")
+            spotify_id = id_match.group(2)
+
+            # Fetch track list
+            if url_type == "playlist":
+                track_urls = get_playlist_track_urls(spotify_id)
+            else:
+                track_urls = get_album_track_urls(spotify_id)
+
+            if not track_urls:
+                raise RuntimeError("No tracks found in playlist/album")
+
+            total = len(track_urls)
+
+            # Enforce 50-track limit
+            if total > MAX_TRACKS:
+                _set_job_fields(
+                    r, job_id, status="error",
+                    error=f"This playlist has {total} tracks. Maximum allowed is {MAX_TRACKS}. "
+                          f"Please use a shorter playlist or download individual tracks.",
+                )
+                return
+
+            _set_job_fields(r, job_id, progress=15)
+
+            # Download each track in its own subdirectory to avoid filename collisions
+            downloaded_paths: list[Path] = []
+            completed = 0
+
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                future_map = {}
+                for i, track_url in enumerate(track_urls):
+                    track_dir = f"{tmp_dir}/track_{i}"
+                    Path(track_dir).mkdir(parents=True, exist_ok=True)
+                    future = pool.submit(
+                        _download_single_track,
+                        track_url, fmt, bitrate, track_dir, subprocess_env,
+                    )
+                    future_map[future] = i
+
+                for future in as_completed(future_map):
+                    result_path = future.result()
+                    if result_path:
+                        downloaded_paths.append(result_path)
+                    completed += 1
+                    progress = 15 + int((completed / total) * 55)
+                    _set_job_fields(r, job_id, progress=progress)
+
+            if not downloaded_paths:
+                raise RuntimeError("All tracks failed to download — no audio files produced")
+
+            _set_job_fields(r, job_id, progress=72)
+
+            # Zip all downloaded files
+            zip_path = f"/tmp/{job_id}.zip"
+            with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for p in downloaded_paths:
+                    zf.write(str(p), arcname=p.name)
+
+            local_upload_path = zip_path
+            filename = f"{job_id}.zip"
+
+        # ── Upload to R2 ───────────────────────────────────────────────────
+        _set_job_fields(r, job_id, progress=80)
         object_key = f"{job_id}/{filename}"
         upload_file(local_upload_path, object_key)
 
-        _set_job_fields(r, job_id, progress=90)
-
+        _set_job_fields(r, job_id, progress=92)
         presigned_url = generate_presigned_url(object_key, expiry_seconds=7200)
 
-        _set_job_fields(
-            r, job_id,
-            status="done",
-            progress=100,
-            filename=filename,
-            download_url=presigned_url,
-            object_key=object_key,
-        )
+        _set_job_fields(r, job_id,
+                        status="done", progress=100,
+                        filename=filename,
+                        download_url=presigned_url,
+                        object_key=object_key)
 
     except subprocess.TimeoutExpired:
-        _set_job_fields(
-            r, job_id,
-            status="error",
-            error="Download timed out after 10 minutes.",
-        )
+        _set_job_fields(r, job_id, status="error",
+                        error="Download timed out. Try a shorter playlist or a single track.")
     except Exception as exc:
-        _set_job_fields(
-            r, job_id,
-            status="error",
-            error=str(exc)[:500],
-        )
+        _set_job_fields(r, job_id, status="error", error=str(exc)[:500])
     finally:
-        # Always clean up temp dir
         if Path(tmp_dir).exists():
             shutil.rmtree(tmp_dir, ignore_errors=True)
-        zip_path_candidate = f"/tmp/{job_id}.zip"
-        if Path(zip_path_candidate).exists():
-            try:
-                os.remove(zip_path_candidate)
-            except OSError:
-                pass
+        zip_candidate = Path(f"/tmp/{job_id}.zip")
+        if zip_candidate.exists():
+            zip_candidate.unlink(missing_ok=True)
